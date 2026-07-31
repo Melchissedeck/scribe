@@ -1,0 +1,43 @@
+﻿<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scribe - Connexion</title>
+  <link rel="stylesheet" href="../css/tokens.css">
+  <link rel="stylesheet" href="../css/base.css">
+  <link rel="stylesheet" href="../css/auth.css">
+</head>
+<body>
+  <div class="auth-page">
+    <div class="auth-card card">
+      <h1 class="auth-title">Se connecter</h1>
+      <p class="auth-subtitle">Retrouvez vos reunions et vos comptes-rendus.</p>
+
+      <form id="login-form">
+        <div class="form-group">
+          <label class="form-label" for="email">Email</label>
+          <input class="input-field" type="email" id="email" name="email" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="password">Mot de passe</label>
+          <input class="input-field" type="password" id="password" name="password" required>
+        </div>
+
+        <p class="error-message" id="error-message"></p>
+
+        <button class="button-primary auth-submit" type="submit" id="submit-button">
+          Se connecter
+        </button>
+      </form>
+
+      <p class="auth-footer">
+        Pas encore de compte ? <a href="register.html">Creer un compte</a>
+      </p>
+    </div>
+  </div>
+
+  <script type="module" src="../js/login.js"></script>
+</body>
+</html>
