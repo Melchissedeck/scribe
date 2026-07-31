@@ -1,0 +1,99 @@
+﻿/* Styles partages par les ecrans de consentement, choix du mode et acces restreint */
+
+.flow-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.flow-card {
+  width: 100%;
+  max-width: 480px;
+  padding: 22px 24px;
+}
+
+.flow-title {
+  font-size: 18px;
+  font-weight: 800;
+  margin-bottom: 10px;
+}
+
+.flow-text {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 1.6;
+  margin-bottom: 14px;
+}
+
+.flow-list {
+  list-style: none;
+  margin-bottom: 18px;
+}
+
+.flow-list li {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  padding: 8px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.flow-list li:last-child {
+  border-bottom: none;
+}
+
+.flow-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.button-secondary {
+  background-color: var(--color-surface);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-input);
+  padding: 11px 17px;
+  font-weight: 700;
+  cursor: pointer;
+  flex: 1;
+}
+
+.button-primary.flow-flex {
+  flex: 1;
+}
+
+.mode-choice {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.mode-option {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  padding: 16px 18px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.mode-option:hover {
+  border-color: var(--color-border-primary);
+  background-color: var(--color-primary-bg);
+}
+
+.mode-option-title {
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.mode-option-description {
+  font-size: 12.5px;
+  color: var(--color-text-secondary);
+}
