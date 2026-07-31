@@ -19,3 +19,6 @@ venv/
 # Base de données locale
 *.db
 *.sqlite3
+
+# Certificats HTTPS locaux
+frontend/certs/
