@@ -8,6 +8,7 @@ class Settings:
     jwt_secret_key: str = os.getenv('JWT_SECRET_KEY', 'change-me-in-production')
     jwt_algorithm: str = 'HS256'
     jwt_expiration_minutes: int = 60
+    allowed_origin: str = os.getenv('ALLOWED_ORIGIN', 'http://127.0.0.1:5500')
 
 
 settings = Settings()
