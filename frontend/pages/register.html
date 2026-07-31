@@ -1,0 +1,48 @@
+﻿<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scribe - Creer un compte</title>
+  <link rel="stylesheet" href="../css/tokens.css">
+  <link rel="stylesheet" href="../css/base.css">
+  <link rel="stylesheet" href="../css/auth.css">
+</head>
+<body>
+  <div class="auth-page">
+    <div class="auth-card card">
+      <h1 class="auth-title">Creer un compte</h1>
+      <p class="auth-subtitle">Rejoignez Scribe pour ne plus perdre le fil de vos reunions.</p>
+
+      <form id="register-form">
+        <div class="form-group">
+          <label class="form-label" for="name">Nom</label>
+          <input class="input-field" type="text" id="name" name="name" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="email">Email</label>
+          <input class="input-field" type="email" id="email" name="email" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="password">Mot de passe</label>
+          <input class="input-field" type="password" id="password" name="password" required minlength="8">
+        </div>
+
+        <p class="error-message" id="error-message"></p>
+
+        <button class="button-primary auth-submit" type="submit" id="submit-button">
+          Creer mon compte
+        </button>
+      </form>
+
+      <p class="auth-footer">
+        Deja un compte ? <a href="login.html">Se connecter</a>
+      </p>
+    </div>
+  </div>
+
+  <script type="module" src="../js/register.js"></script>
+</body>
+</html>
