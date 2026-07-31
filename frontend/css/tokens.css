@@ -1,0 +1,32 @@
+﻿/* Variables de la charte visuelle Scribe, extraites de la maquette de reference */
+
+:root {
+  /* Couleurs */
+  --color-primary: #2563EB;
+  --color-primary-light: #3B82F6;
+  --color-text: #0F172A;
+  --color-text-secondary: #475569;
+  --color-text-muted: #64748B;
+  --color-background: #F8FAFD;
+  --color-surface: #FFFFFF;
+  --color-primary-bg: #EAF1FF;
+  --color-border: #E3E9F2;
+  --color-border-primary: #D6E2FB;
+  --color-success: #16A34A;
+  --color-error: #EF4444;
+  --color-warning: #D97706;
+
+  /* Typographie */
+  --font-primary: 'Manrope', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* Formes */
+  --radius-input: 10px;
+  --radius-card: 12px;
+  --radius-pill: 99px;
+
+  /* Ombres */
+  --shadow-card: 0 10px 30px rgba(15, 23, 42, .05);
+  --shadow-button: 0 4px 12px rgba(37, 99, 235, .18);
+  --shadow-button-hover: 0 4px 12px rgba(37, 99, 235, .35);
+}
