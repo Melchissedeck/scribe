@@ -1,4 +1,4 @@
-from datetime import datetime
+﻿from datetime import datetime
 
 from pydantic import BaseModel, EmailStr
 
@@ -6,6 +6,12 @@ from pydantic import BaseModel, EmailStr
 class UserCreate(BaseModel):
     # Donnees attendues en entree lors de la creation d'un compte
     name: str
+    email: EmailStr
+    password: str
+
+
+class UserLogin(BaseModel):
+    # Donnees attendues en entree lors de la connexion
     email: EmailStr
     password: str
 

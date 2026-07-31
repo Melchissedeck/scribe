@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.user import User
 from app.schemas.token import Token
-from app.schemas.user import UserCreate, UserRead
+from app.schemas.user import UserCreate, UserLogin, UserRead
 from app.services.jwt import create_access_token
 from app.services.password import hash_password, verify_password
 
@@ -34,11 +34,11 @@ def register(user_data: UserCreate, db: Session = Depends(get_db)) -> User:
 
 
 @router.post('/login', response_model=Token)
-def login(email: str, password: str, db: Session = Depends(get_db)) -> Token:
+def login(credentials: UserLogin, db: Session = Depends(get_db)) -> Token:
     # Verifie les identifiants et retourne un token d'acces en cas de succes
-    user = db.query(User).filter(User.email == email).first()
+    user = db.query(User).filter(User.email == credentials.email).first()
 
-    if user is None or not verify_password(password, user.hashed_password):
+    if user is None or not verify_password(credentials.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail='Email ou mot de passe incorrect',
