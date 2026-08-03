@@ -1,6 +1,9 @@
 ﻿# Configuration centralisee de l'application, lue depuis les variables d'environnement
 
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 class Settings:
@@ -9,6 +12,7 @@ class Settings:
     jwt_algorithm: str = 'HS256'
     jwt_expiration_minutes: int = 60
     allowed_origin: str = os.getenv('ALLOWED_ORIGIN', 'https://127.0.0.1:5500')
+    vexa_api_key: str = os.getenv('VEXA_API_KEY', '')
 
 
 settings = Settings()
