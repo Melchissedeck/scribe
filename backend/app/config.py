@@ -7,12 +7,13 @@ load_dotenv()
 
 
 class Settings:
-    database_url: str = os.getenv('DATABASE_URL', 'postgresql://scribe:scribe@localhost:5432/scribe')
+    database_url: str = os.getenv('DATABASE_URL', 'postgresql://scribe:scribe@localhost:5433/scribe')
     jwt_secret_key: str = os.getenv('JWT_SECRET_KEY', 'change-me-in-production')
     jwt_algorithm: str = 'HS256'
     jwt_expiration_minutes: int = 60
     allowed_origin: str = os.getenv('ALLOWED_ORIGIN', 'https://127.0.0.1:5500')
     vexa_api_key: str = os.getenv('VEXA_API_KEY', '')
+    groq_api_key: str = os.getenv("GROQ_API_KEY", "")
 
 
 settings = Settings()

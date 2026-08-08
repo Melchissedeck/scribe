@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.routes import auth, recording
+from app.routes import auth, recording, dictaphone
 
 app = FastAPI(title='Scribe API')
 
@@ -19,6 +19,7 @@ app.add_middleware(
 
 app.include_router(auth.router)
 app.include_router(recording.router)
+app.include_router(dictaphone.router)
 
 
 @app.get('/health')
