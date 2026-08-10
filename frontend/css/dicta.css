@@ -1,0 +1,116 @@
+.dicta-card {
+  max-width: 520px;
+}
+
+.dicta-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 22px;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.recording-indicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: var(--color-text-muted);
+}
+
+.recording-indicator--active {
+  background-color: var(--color-error);
+  animation: recording-pulse 1.2s infinite;
+}
+
+@keyframes recording-pulse {
+  0% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.35;
+  }
+
+  100% {
+    opacity: 1;
+  }
+}
+
+.dicta-timer {
+  margin-top: 18px;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 36px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.dicta-actions {
+  margin-top: 24px;
+}
+
+.dicta-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 20px;
+  margin-top: 18px;
+  background-color: var(--color-primary-bg);
+  border-radius: var(--radius-input);
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.loading-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background-color: var(--color-primary);
+  animation: loading-pulse 1s infinite;
+}
+
+@keyframes loading-pulse {
+  0% {
+    opacity: 0.3;
+  }
+
+  50% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0.3;
+  }
+}
+
+.transcription-result {
+  margin-top: 18px;
+  padding: 16px;
+  min-height: 150px;
+  max-height: 350px;
+  overflow-y: auto;
+  background-color: var(--color-background);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-input);
+}
+
+#transcription-content {
+  color: var(--color-text);
+  font-size: 13px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
+
+#recording-error,
+#transcription-error {
+  min-height: 18px;
+  margin-top: 10px;
+}
+.visio-hidden {
+  display: none !important;
+}
