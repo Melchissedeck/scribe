@@ -75,3 +75,21 @@
   margin-bottom: 8px;
   font-size: 16px;
 }
+
+.back-link {
+  display: inline-block;
+  margin-bottom: 16px;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+}
+
+.meeting-detail-card {
+  padding: 28px;
+}
+
+.meeting-summary-text {
+  color: var(--color-text);
+  line-height: 1.6;
+  white-space: pre-wrap;
+  margin-top: 16px;
+}
