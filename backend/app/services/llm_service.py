@@ -1,4 +1,5 @@
 import logging
+from typing import Optional
 
 from together import Together
 from together.error import TogetherException
@@ -15,7 +16,7 @@ class LLMService:
         self.client = Together(api_key=settings.together_api_key)
         self.model = settings.together_model
 
-    def generate_summary(self, transcription: str) -> str | None:
+    def generate_summary(self, transcription: str) -> Optional[str]:
         """
         Génère un résumé en texte libre à partir d'une transcription.
 
