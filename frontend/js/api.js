@@ -9,12 +9,19 @@ class ApiError extends Error {
   }
 }
 
+function getAuthHeaders() {
+  // Ajoute le token JWT stocke en session, si present
+  const token = sessionStorage.getItem('access_token');
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 async function apiRequest(path, options = {}) {
   // Effectue une requete vers l'API et normalise la gestion des erreurs
   const response = await fetch(API_BASE_URL + path, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
+      ...getAuthHeaders(),
       ...options.headers,
     },
   });
@@ -41,6 +48,14 @@ export function loginUser(email, password) {
     method: 'POST',
     body: JSON.stringify({ email, password }),
   });
+}
+
+export function getMeetings() {
+  return apiRequest('/meetings', { method: 'GET' });
+}
+
+export function getMeetingSummary(meetingId) {
+  return apiRequest(`/meetings/${meetingId}/summary`, { method: 'GET' });
 }
 
 export { ApiError };
