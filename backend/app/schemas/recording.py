@@ -18,7 +18,13 @@ class RecordingRead(BaseModel):
     bot_name: str
     status: str
     transcript: Optional[str] = None
+    summary: Optional[str] = None
     started_at: datetime
     stopped_at: Optional[datetime] = None
 
     model_config = {'from_attributes': True}
+
+
+class SummaryResponse(BaseModel):
+    recording_id: int
+    summary: str
