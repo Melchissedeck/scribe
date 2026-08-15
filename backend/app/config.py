@@ -14,6 +14,8 @@ class Settings:
     allowed_origin: str = os.getenv('ALLOWED_ORIGIN', 'https://127.0.0.1:5500')
     vexa_api_key: str = os.getenv('VEXA_API_KEY', '')
     groq_api_key: str = os.getenv("GROQ_API_KEY", "")
+    together_api_key: str = os.getenv("TOGETHER_API_KEY", "")
+    together_model: str = os.getenv("TOGETHER_MODEL", "Qwen/Qwen3.7-Plus")
 
 
 settings = Settings()
