@@ -14,6 +14,7 @@ class Recording(Base):
     platform = Column(String(50), nullable=False)
     native_meeting_id = Column(String(255), nullable=False)
     bot_name = Column(String(100), nullable=False, default='Scribe')
+    theme = Column(String(255), nullable=True)
     # pending | active | stopped | error
     status = Column(String(20), nullable=False, default='pending')
     transcript = Column(Text, nullable=True)
