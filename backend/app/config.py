@@ -15,7 +15,7 @@ class Settings:
     vexa_api_key: str = os.getenv('VEXA_API_KEY', '')
     groq_api_key: str = os.getenv("GROQ_API_KEY", "")
     together_api_key: str = os.getenv("TOGETHER_API_KEY", "")
-    together_model: str = os.getenv("TOGETHER_MODEL", "Qwen/Qwen3.7-Plus")
+    together_model: str = os.getenv("TOGETHER_MODEL", "Qwen/Qwen3.8-2.4T-A95B")
 
 
 settings = Settings()
