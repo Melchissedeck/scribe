@@ -28,3 +28,12 @@ class RecordingRead(BaseModel):
 class SummaryResponse(BaseModel):
     recording_id: int
     summary: str
+
+
+class MeetingListItem(BaseModel):
+    id: int
+    theme: Optional[str] = None
+    date: datetime
+    summary_excerpt: Optional[str] = None
+
+    model_config = {'from_attributes': True}
