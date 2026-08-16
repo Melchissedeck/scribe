@@ -17,6 +17,7 @@ class Recording(Base):
     # pending | active | stopped | error
     status = Column(String(20), nullable=False, default='pending')
     transcript = Column(Text, nullable=True)
+    summary = Column(Text, nullable=True)
     started_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     stopped_at = Column(DateTime, nullable=True)
 
