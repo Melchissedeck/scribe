@@ -49,3 +49,29 @@ def generate_summary(
     db.refresh(recording)
 
     return SummaryResponse(recording_id=recording.id, summary=recording.summary)
+
+@router.get('/{meeting_id}/summary', response_model=SummaryResponse)
+def get_summary(
+    meeting_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    recording = (
+        db.query(Recording)
+        .filter(
+            Recording.id == meeting_id,
+            Recording.user_id == current_user.id,
+        )
+        .first()
+    )
+
+    if not recording:
+        raise HTTPException(status_code=404, detail='Réunion introuvable.')
+
+    if not recording.summary or not recording.summary.strip():
+        raise HTTPException(
+            status_code=404,
+            detail="Aucun résumé n'est disponible pour cette réunion pour le moment.",
+        )
+
+    return SummaryResponse(recording_id=recording.id, summary=recording.summary)
