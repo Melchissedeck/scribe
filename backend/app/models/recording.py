@@ -25,3 +25,4 @@ class Recording(Base):
     user = relationship('User', back_populates='recordings')
     speakers = relationship('Speaker', back_populates='recording')
     actions = relationship('Action', back_populates='recording')
+    segments = relationship('TranscriptSegment', back_populates='recording')
