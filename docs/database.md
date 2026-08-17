@@ -41,3 +41,16 @@ Représente un intervenant identifié dans une réunion (locuteur), pour permett
 | recording_id | integer | foreign key → recordings.id, not null | Réunion à laquelle ce locuteur participe |
 | provisional_name | varchar(100) | not null | Nom attribué par défaut (ex: Locuteur A, Locuteur B) |
 | real_name | varchar(100) | nullable | Vrai nom de la personne, complété après identification |
+
+## Table actions
+
+Représente une tâche extraite d'un compte-rendu de réunion.
+
+| Colonne | Type | Contraintes | Description |
+|---|---|---|---|
+| id | integer | primary key | Identifiant unique de l'action |
+| recording_id | integer | foreign key → recordings.id, not null | Réunion durant laquelle l'action a été décidée |
+| speaker_id | integer | foreign key → speakers.id, nullable | Locuteur chargé de réaliser cette action, si identifié |
+| description | text | not null | Description textuelle de la tâche à accomplir |
+| status | varchar(20) | not null | État d'avancement : todo, in_progress, done |
+| due_date | date | nullable | Date limite de réalisation de l'action |
