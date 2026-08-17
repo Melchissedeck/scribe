@@ -23,3 +23,4 @@ class Recording(Base):
     stopped_at = Column(DateTime, nullable=True)
 
     user = relationship('User', back_populates='recordings')
+    speakers = relationship('Speaker', back_populates='recording')
