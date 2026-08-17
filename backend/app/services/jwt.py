@@ -1,8 +1,9 @@
 ﻿from datetime import datetime, timedelta
 
-from jose import JWTError, jwt
+from jose import ExpiredSignatureError, JWTError, jwt
 
 from app.config import settings
+from app.exceptions import InvalidCredentialsError, TokenExpiredError
 
 
 def create_access_token(user_id: int) -> str:
@@ -12,13 +13,18 @@ def create_access_token(user_id: int) -> str:
     return jwt.encode(payload, settings.jwt_secret_key, algorithm=settings.jwt_algorithm)
 
 
-def decode_access_token(token: str) -> int | None:
-    # Decode un token JWT et retourne l'identifiant utilisateur qu'il contient
+def decode_access_token(token: str) -> int:
+    # Decode un token JWT et retourne l'identifiant utilisateur qu'il contient.
+    # Leve TokenExpiredError ou InvalidCredentialsError si le token n'est pas exploitable.
     try:
         payload = jwt.decode(token, settings.jwt_secret_key, algorithms=[settings.jwt_algorithm])
-        user_id = payload.get('sub')
-        if user_id is None:
-            return None
-        return int(user_id)
+    except ExpiredSignatureError:
+        raise TokenExpiredError() from None
     except JWTError:
-        return None
+        raise InvalidCredentialsError() from None
+
+    user_id = payload.get('sub')
+    if user_id is None:
+        raise InvalidCredentialsError()
+
+    return int(user_id)
