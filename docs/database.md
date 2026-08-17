@@ -54,3 +54,16 @@ Représente une tâche extraite d'un compte-rendu de réunion.
 | description | text | not null | Description textuelle de la tâche à accomplir |
 | status | varchar(20) | not null | État d'avancement : todo, in_progress, done |
 | due_date | date | nullable | Date limite de réalisation de l'action |
+
+## Table transcript_segments
+
+Représente un bloc de parole de la transcription (un segment = une prise de parole d'un locuteur).
+
+| Colonne | Type | Contraintes | Description |
+|---|---|---|---|
+| id | integer | primary key | Identifiant unique du segment |
+| recording_id | integer | foreign key → recordings.id, not null | Réunion concernée |
+| speaker_id | integer | foreign key → speakers.id, not null | Locuteur qui a prononcé ce segment |
+| text | text | not null | Contenu textuel de la parole transcrite |
+| start_time | time | not null | Timestamp précis du début de la prise de parole |
+| end_time | time | not null | Timestamp précis de la fin de la prise de parole |
