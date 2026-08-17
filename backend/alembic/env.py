@@ -22,6 +22,9 @@ if config.config_file_name is not None:
 from app.database import Base
 from app.models.user import User  # noqa: F401
 from app.models.recording import Recording  # noqa: F401
+from app.models.speaker import Speaker  # noqa: F401
+from app.models.action import Action  # noqa: F401
+from app.models.transcript_segment import TranscriptSegment  # noqa: F401
 from app.config import settings
 
 # On force Alembic a utiliser l'URL de connexion definie dans nos settings

@@ -1,10 +1,12 @@
-﻿# Point d'entree de l'application FastAPI
+# Point d'entree de l'application FastAPI
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from app.config import settings
-from app.routes import auth, recording, dictaphone, summary, meetings
+from app.exceptions import InvalidCredentialsError, TokenExpiredError
+from app.routes import auth, recording, dictaphone, summary, meetings, users
 
 app = FastAPI(title='Scribe API')
 
@@ -17,11 +19,31 @@ app.add_middleware(
     allow_headers=['*'],
 )
 
+
+@app.exception_handler(TokenExpiredError)
+def handle_token_expired(request: Request, exc: TokenExpiredError) -> JSONResponse:
+    return JSONResponse(
+        status_code=401,
+        content={'detail': exc.message},
+        headers={'WWW-Authenticate': 'Bearer'},
+    )
+
+
+@app.exception_handler(InvalidCredentialsError)
+def handle_invalid_credentials(request: Request, exc: InvalidCredentialsError) -> JSONResponse:
+    return JSONResponse(
+        status_code=401,
+        content={'detail': exc.message},
+        headers={'WWW-Authenticate': 'Bearer'},
+    )
+
+
 app.include_router(auth.router)
 app.include_router(recording.router)
 app.include_router(dictaphone.router)
 app.include_router(summary.router)
 app.include_router(meetings.router)
+app.include_router(users.router)
 
 @app.get('/health')
 def health_check() -> dict[str, str]:

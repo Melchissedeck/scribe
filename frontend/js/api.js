@@ -58,4 +58,19 @@ export function getMeetingSummary(meetingId) {
   return apiRequest(`/meetings/${meetingId}/summary`, { method: 'GET' });
 }
 
+export function startRecording(platform, nativeMeetingId, botName) {
+  return apiRequest('/recording/start', {
+    method: 'POST',
+    body: JSON.stringify({ platform, native_meeting_id: nativeMeetingId, bot_name: botName }),
+  });
+}
+
+export function stopRecording(recordingId) {
+  return apiRequest(`/recording/${recordingId}/stop`, { method: 'POST' });
+}
+
+export function refreshTranscript(recordingId) {
+  return apiRequest(`/recording/${recordingId}/transcript`, { method: 'GET' });
+}
+
 export { ApiError };
