@@ -28,6 +28,13 @@
   font-size: 13px;
 }
 
+.dashboard-new-meeting-link {
+  display: inline-block;
+  margin-bottom: 24px;
+  text-decoration: none;
+  text-align: center;
+}
+
 .meeting-list {
   display: flex;
   flex-direction: column;
