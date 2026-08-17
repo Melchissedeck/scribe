@@ -2,6 +2,7 @@
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.exceptions import InvalidCredentialsError
 from app.models.user import User
 from app.schemas.token import Token
 from app.schemas.user import UserCreate, UserLogin, UserRead
@@ -39,10 +40,7 @@ def login(credentials: UserLogin, db: Session = Depends(get_db)) -> Token:
     user = db.query(User).filter(User.email == credentials.email).first()
 
     if user is None or not verify_password(credentials.password, user.hashed_password):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail='Email ou mot de passe incorrect',
-        )
+        raise InvalidCredentialsError('Email ou mot de passe incorrect')
 
     access_token = create_access_token(user.id)
     return Token(access_token=access_token)
