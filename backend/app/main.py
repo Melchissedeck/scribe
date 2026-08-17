@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.routes import auth, recording, dictaphone, summary, meetings
+from app.routes import auth, recording, dictaphone, summary, meetings, users
 
 app = FastAPI(title='Scribe API')
 
@@ -22,6 +22,7 @@ app.include_router(recording.router)
 app.include_router(dictaphone.router)
 app.include_router(summary.router)
 app.include_router(meetings.router)
+app.include_router(users.router)
 
 @app.get('/health')
 def health_check() -> dict[str, str]:
