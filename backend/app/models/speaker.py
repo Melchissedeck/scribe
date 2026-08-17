@@ -13,3 +13,4 @@ class Speaker(Base):
     real_name = Column(String(100), nullable=True)
 
     recording = relationship('Recording', back_populates='speakers')
+    actions = relationship('Action', back_populates='speaker')
