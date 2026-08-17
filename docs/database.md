@@ -30,3 +30,14 @@ Représente une session de captation lancée par un utilisateur (visioconference
 | transcript | text | nullable | Transcription brute récupérée depuis Vexa |
 | started_at | datetime | not null | Date de lancement de la session |
 | stopped_at | datetime | nullable | Date d'arrêt de la session |
+
+## Table speakers
+
+Représente un intervenant identifié dans une réunion (locuteur), pour permettre l'attribution des propos.
+
+| Colonne | Type | Contraintes | Description |
+|---|---|---|---|
+| id | integer | primary key | Identifiant unique du locuteur |
+| recording_id | integer | foreign key → recordings.id, not null | Réunion à laquelle ce locuteur participe |
+| provisional_name | varchar(100) | not null | Nom attribué par défaut (ex: Locuteur A, Locuteur B) |
+| real_name | varchar(100) | nullable | Vrai nom de la personne, complété après identification |
