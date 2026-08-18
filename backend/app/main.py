@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.config import settings
-from app.exceptions import InvalidCredentialsError, TokenExpiredError
+from app.exceptions import InvalidCredentialsError, TokenExpiredError, VexaConnectionError
 from app.routes import auth, recording, dictaphone, summary, meetings, users
 
 app = FastAPI(title='Scribe API')
@@ -13,7 +13,11 @@ app = FastAPI(title='Scribe API')
 # Autorise uniquement le frontend declare a appeler l'API
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.allowed_origin],
+    allow_origins=[
+        settings.allowed_origin,
+        settings.allowed_origin.replace('127.0.0.1', 'localhost'),
+        settings.allowed_origin.replace('localhost', '127.0.0.1'),
+    ],
     allow_credentials=True,
     allow_methods=['*'],
     allow_headers=['*'],
@@ -36,6 +40,11 @@ def handle_invalid_credentials(request: Request, exc: InvalidCredentialsError) -
         content={'detail': exc.message},
         headers={'WWW-Authenticate': 'Bearer'},
     )
+
+
+@app.exception_handler(VexaConnectionError)
+def handle_vexa_connection_error(request: Request, exc: VexaConnectionError) -> JSONResponse:
+    return JSONResponse(status_code=502, content={'detail': exc.message})
 
 
 app.include_router(auth.router)

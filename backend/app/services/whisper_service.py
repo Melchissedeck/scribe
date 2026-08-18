@@ -20,5 +20,3 @@ class WhisperService:
             )
 
         return transcription
-    
-        

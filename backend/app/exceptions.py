@@ -10,3 +10,10 @@ class InvalidCredentialsError(Exception):
     def __init__(self, message: str = 'Impossible de vérifier les identifiants.'):
         self.message = message
         super().__init__(message)
+
+
+class VexaConnectionError(Exception):
+    # Levee quand l'API Vexa est inaccessible (timeout, coupure réseau, HTTP error)
+    def __init__(self, message: str = 'Impossible de joindre le service Vexa. Veuillez réessayer.'):
+        self.message = message
+        super().__init__(message)
