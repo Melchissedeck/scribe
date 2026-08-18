@@ -1,16 +1,83 @@
-from datetime import datetime
+import logging
+from datetime import datetime, time as dt_time
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.dependencies import get_current_user
+from app.exceptions import VexaConnectionError
 from app.models.recording import Recording
+from app.models.speaker import Speaker
+from app.models.transcript_segment import TranscriptSegment
 from app.models.user import User
 from app.schemas.recording import RecordingCreate, RecordingRead
 from vexa_agent import VexaAgent
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix='/recording', tags=['recording'])
+
+
+def _seconds_to_time(seconds: float) -> dt_time:
+    s = max(0, int(seconds))
+    return dt_time(hour=min(s // 3600, 23), minute=(s % 3600) // 60, second=s % 60)
+
+
+def _deduplicate_segments(raw_segments: list[dict]) -> list[dict]:
+    """Supprime les segments consécutifs identiques (même speaker, même texte).
+
+    Vexa retourne un transcript cumulatif : chaque appel inclut tous les segments
+    depuis le début, ce qui produit des doublons quand on poll plusieurs fois.
+    """
+    clean = []
+    for seg in raw_segments:
+        text = seg.get('text', '').strip()
+        if not text:
+            continue
+        last = clean[-1] if clean else None
+        if last and last.get('speaker') == seg.get('speaker') and last.get('text', '').strip() == text:
+            continue
+        clean.append(seg)
+    return clean
+
+
+def _save_diarized_segments(db: Session, recording_id: int, raw_segments: list[dict]) -> None:
+    # Vide les segments existants avant de réinsérer : Vexa est cumulatif,
+    # chaque appel contient tous les segments depuis le début de la réunion.
+    db.query(TranscriptSegment).filter(TranscriptSegment.recording_id == recording_id).delete()
+    db.flush()
+
+    segments = _deduplicate_segments(raw_segments)
+    speaker_map: dict[str, Speaker] = {}
+
+    for seg in segments:
+        vexa_label = seg.get('speaker', 'Inconnu')
+        if vexa_label not in speaker_map:
+            existing = (
+                db.query(Speaker)
+                .filter(Speaker.recording_id == recording_id, Speaker.provisional_name == vexa_label)
+                .first()
+            )
+            if existing:
+                speaker_map[vexa_label] = existing
+            else:
+                speaker = Speaker(recording_id=recording_id, provisional_name=vexa_label)
+                db.add(speaker)
+                db.flush()
+                speaker_map[vexa_label] = speaker
+
+    for seg in segments:
+        vexa_label = seg.get('speaker', 'Inconnu')
+        db.add(TranscriptSegment(
+            recording_id=recording_id,
+            speaker_id=speaker_map[vexa_label].id,
+            text=seg.get('text', '').strip(),
+            start_time=_seconds_to_time(seg.get('start', 0)),
+            end_time=_seconds_to_time(seg.get('end', 0)),
+        ))
+
+    db.commit()
 
 
 @router.post('/start', response_model=RecordingRead)
@@ -20,10 +87,7 @@ def start_recording(
     current_user: User = Depends(get_current_user),
 ):
     agent = VexaAgent()
-    try:
-        agent.send_bot(payload.platform, payload.native_meeting_id, payload.bot_name)
-    except Exception as exc:
-        raise HTTPException(status_code=502, detail=f'Vexa error: {exc}')
+    agent.send_bot(payload.platform, payload.native_meeting_id, payload.bot_name)
 
     recording = Recording(
         user_id=current_user.id,
@@ -51,15 +115,19 @@ def stop_recording(
     if not recording:
         raise HTTPException(status_code=404, detail='Session introuvable')
     if recording.status != 'active':
-        raise HTTPException(status_code=400, detail='La session n\'est pas active')
+        raise HTTPException(status_code=400, detail="La session n'est pas active")
 
     agent = VexaAgent()
     agent.stop_bot(recording.platform, recording.native_meeting_id)
 
     try:
+        raw_segments = agent.get_diarized_segments(recording.platform, recording.native_meeting_id)
         recording.transcript = agent.get_transcript(recording.platform, recording.native_meeting_id)
-    except Exception:
-        pass
+        _save_diarized_segments(db, recording.id, raw_segments)
+    except VexaConnectionError:
+        logger.warning('Transcription Vexa indisponible pour la session %s', recording_id)
+    except Exception as exc:
+        logger.error('Erreur inattendue lors de la récupération de la transcription: %s', exc)
 
     recording.status = 'stopped'
     recording.stopped_at = datetime.utcnow()
@@ -82,13 +150,11 @@ def refresh_transcript(
         raise HTTPException(status_code=404, detail='Session introuvable')
 
     agent = VexaAgent()
-    try:
-        recording.transcript = agent.get_transcript(recording.platform, recording.native_meeting_id)
-        db.commit()
-        db.refresh(recording)
-    except Exception as exc:
-        raise HTTPException(status_code=502, detail=f'Vexa error: {exc}')
-
+    raw_segments = agent.get_diarized_segments(recording.platform, recording.native_meeting_id)
+    recording.transcript = agent.get_transcript(recording.platform, recording.native_meeting_id)
+    _save_diarized_segments(db, recording.id, raw_segments)
+    db.commit()
+    db.refresh(recording)
     return recording
 
 
