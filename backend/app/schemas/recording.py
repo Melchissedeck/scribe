@@ -34,6 +34,19 @@ class MeetingListItem(BaseModel):
     id: int
     theme: Optional[str] = None
     date: datetime
+    status: str
     summary_excerpt: Optional[str] = None
 
     model_config = {'from_attributes': True}
+
+
+class SegmentOut(BaseModel):
+    speaker_name: str
+    text: str
+
+    model_config = {'from_attributes': True}
+
+
+class DiarizedTranscriptResponse(BaseModel):
+    meeting_id: int
+    segments: list[SegmentOut]

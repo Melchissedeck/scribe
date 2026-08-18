@@ -1,11 +1,12 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.recording import Recording
 from app.models.user import User
-from app.schemas.recording import MeetingListItem
+from app.models.transcript_segment import TranscriptSegment
+from app.schemas.recording import DiarizedTranscriptResponse, MeetingListItem, SegmentOut
 
 router = APIRouter(prefix='/meetings', tags=['meetings'])
 
@@ -37,7 +38,45 @@ def list_meetings(
             id=recording.id,
             theme=recording.theme,
             date=recording.started_at,
+            status=recording.status,
             summary_excerpt=_build_excerpt(recording.summary),
         )
         for recording in recordings
     ]
+
+
+@router.get('/{meeting_id}/diarized-transcript', response_model=DiarizedTranscriptResponse)
+def get_diarized_transcript(
+    meeting_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    recording = (
+        db.query(Recording)
+        .filter(Recording.id == meeting_id, Recording.user_id == current_user.id)
+        .first()
+    )
+    if not recording:
+        raise HTTPException(status_code=404, detail='Réunion introuvable.')
+
+    segments = (
+        db.query(TranscriptSegment)
+        .filter(TranscriptSegment.recording_id == meeting_id)
+        .join(TranscriptSegment.speaker)
+        .order_by(TranscriptSegment.start_time)
+        .all()
+    )
+
+    if not segments:
+        raise HTTPException(
+            status_code=404,
+            detail='Aucune diarisation disponible pour cette réunion.',
+        )
+
+    return DiarizedTranscriptResponse(
+        meeting_id=meeting_id,
+        segments=[
+            SegmentOut(speaker_name=seg.speaker.provisional_name, text=seg.text)
+            for seg in segments
+        ],
+    )
