@@ -21,7 +21,7 @@ async function handleSubmit(event) {
   try {
     const result = await loginUser(email, password);
     sessionStorage.setItem('access_token', result.access_token);
-    window.location.href = 'dashboard.html';
+    window.location.href = 'accueil.html';
   } catch (error) {
     if (error instanceof ApiError) {
       errorMessage.textContent = error.message;
