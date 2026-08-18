@@ -10,12 +10,17 @@
 </head>
 <body>
   <div class="dashboard-page">
-    <a href="dashboard.html" class="back-link">&larr; Retour aux réunions</a>
+    <a href="accueil.html" class="back-link">&larr; Retour aux réunions</a>
 
     <div class="card meeting-detail-card">
       <h1 class="dashboard-title" id="meeting-theme">Compte-rendu</h1>
       <p class="meeting-date" id="meeting-date"></p>
       <p id="meeting-summary" class="meeting-summary-text"></p>
+    </div>
+
+    <div class="card meeting-detail-card" id="speakers-card" style="display:none;">
+      <h2 class="dashboard-title" style="font-size:1.1rem;margin-bottom:1rem;">Intervenants</h2>
+      <div id="speakers-transcript"></div>
     </div>
   </div>
 
