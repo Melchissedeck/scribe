@@ -58,6 +58,10 @@ export function getMeetingSummary(meetingId) {
   return apiRequest(`/meetings/${meetingId}/summary`, { method: 'GET' });
 }
 
+export function getDiarizedTranscript(meetingId) {
+  return apiRequest(`/meetings/${meetingId}/diarized-transcript`, { method: 'GET' });
+}
+
 export function startRecording(platform, nativeMeetingId, botName) {
   return apiRequest('/recording/start', {
     method: 'POST',
