@@ -1,12 +1,30 @@
 ﻿# Point d'entree de l'application FastAPI
 
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.routes import auth, recording, dictaphone
+from app.services.pyannote_service import PyannoteService
 
-app = FastAPI(title='Scribe API')
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Charge le pipeline Pyannote au démarrage de l'application
+    app.state.pyannote_service = PyannoteService()
+
+    yield
+
+    # Libère la référence au pipeline à l'arrêt
+    app.state.pyannote_service = None
+
+
+app = FastAPI(
+    title='Scribe API',
+    lifespan=lifespan,
+)
 
 # Autorise uniquement le frontend declare a appeler l'API
 app.add_middleware(

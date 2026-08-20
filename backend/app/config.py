@@ -14,6 +14,8 @@ class Settings:
     allowed_origin: str = os.getenv('ALLOWED_ORIGIN', 'https://127.0.0.1:5500')
     vexa_api_key: str = os.getenv('VEXA_API_KEY', '')
     groq_api_key: str = os.getenv("GROQ_API_KEY", "")
+    pyannote_auth_token: str = os.getenv("PYANNOTE_AUTH_TOKEN", "")
+    ffmpeg_bin: str = os.getenv("FFMPEG_BIN", "")
 
 
 settings = Settings()
