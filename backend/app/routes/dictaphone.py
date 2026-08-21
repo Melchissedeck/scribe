@@ -1,12 +1,13 @@
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.recording import Recording
 from app.models.user import User
+from app.services.speaker_assignment_service import SpeakerAssignmentService
 from app.services.whisper_service import WhisperService
 
 
@@ -172,4 +173,81 @@ def transcribe_audio(
     return {
         "recording_id": recording.id,
         "transcript": recording.transcript,
+    }
+
+
+@router.post("/{recording_id}/diarize")
+def diarize_audio(
+    recording_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    recording = (
+        db.query(Recording)
+        .filter(
+            Recording.id == recording_id,
+            Recording.user_id == current_user.id,
+        )
+        .first()
+    )
+
+    if not recording:
+        raise HTTPException(
+            status_code=404,
+            detail="Enregistrement introuvable.",
+        )
+
+    recording_dir = UPLOAD_DIR / str(recording_id)
+
+    if not recording_dir.exists():
+        raise HTTPException(
+            status_code=404,
+            detail="Aucun fichier audio trouvé pour cet enregistrement.",
+        )
+
+    audio_files = [
+        file
+        for file in recording_dir.iterdir()
+        if file.is_file()
+        and file.suffix.lower() in ALLOWED_EXTENSIONS
+    ]
+
+    if not audio_files:
+        raise HTTPException(
+            status_code=404,
+            detail="Aucun fichier audio trouvé pour cet enregistrement.",
+        )
+
+    audio_path = audio_files[0]
+
+    try:
+        whisper_service = WhisperService()
+
+        transcription_segments = (
+            whisper_service.transcribe_segments(str(audio_path))
+        )
+
+        pyannote_service = request.app.state.pyannote_service
+
+        diarization_segments = (
+            pyannote_service.diarize(str(audio_path))
+        )
+
+        assignment_service = SpeakerAssignmentService()
+
+        assigned_segments = assignment_service.assign_speakers(
+            transcription_segments,
+            diarization_segments,
+        )
+
+    except Exception as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Erreur lors de la diarisation : {exc}",
+        )
+
+    return {
+        "recording_id": recording.id,
+        "segments": assigned_segments,
     }
