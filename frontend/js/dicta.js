@@ -34,6 +34,7 @@ const transcriptionStatus = document.getElementById('transcription-status');
 const transcriptionLoading = document.getElementById('transcription-loading');
 const transcriptionResult = document.getElementById('transcription-result');
 const transcriptionContent = document.getElementById('transcription-content');
+const transcriptionSegments = document.getElementById('transcription-segments');
 const transcriptionError = document.getElementById('transcription-error');
 
 
@@ -97,9 +98,7 @@ async function createRecording() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function uploadAudio(recordingId, audioBlob) {
-  const extension = audioBlob.type.includes('webm')
-    ? 'webm'
-    : 'webm';
+  const extension = 'webm';
 
   const formData = new FormData();
 
@@ -143,6 +142,17 @@ async function uploadAudio(recordingId, audioBlob) {
 
 async function transcribeAudio(recordingId) {
   return apiRequest(`/meetings/${recordingId}/transcribe`, {
+    method: 'POST',
+  });
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Diarisation
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function diarizeAudio(recordingId) {
+  return apiRequest(`/meetings/${recordingId}/diarize`, {
     method: 'POST',
   });
 }
@@ -199,6 +209,42 @@ function showRecordingView() {
 function showTranscriptionView() {
   recordingView.classList.add('visio-hidden');
   transcriptionView.classList.remove('visio-hidden');
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Affichage des segments avec les speakers
+// ─────────────────────────────────────────────────────────────────────────────
+
+function displaySpeakerSegments(segments) {
+  transcriptionSegments.innerHTML = '';
+
+  if (!Array.isArray(segments) || segments.length === 0) {
+    return false;
+  }
+
+  segments.forEach((segment) => {
+    const segmentElement = document.createElement('div');
+    segmentElement.className = 'transcription-segment';
+
+    const speakerElement = document.createElement('div');
+    speakerElement.className = 'transcription-speaker';
+    speakerElement.textContent = segment.speaker || 'Intervenant';
+
+    const textElement = document.createElement('div');
+    textElement.className = 'transcription-text';
+    textElement.textContent = segment.text || '';
+
+    segmentElement.appendChild(speakerElement);
+    segmentElement.appendChild(textElement);
+
+    transcriptionSegments.appendChild(segmentElement);
+  });
+
+  transcriptionContent.classList.add('visio-hidden');
+  transcriptionSegments.classList.remove('visio-hidden');
+
+  return true;
 }
 
 
@@ -283,6 +329,7 @@ startButton.addEventListener('click', async () => {
     currentRecordingId = null;
 
     recordingStatus.textContent = 'Prêt à enregistrer';
+
     recordingIndicator.classList.remove(
       'recording-indicator--active',
     );
@@ -382,7 +429,7 @@ async function handleRecordingStop() {
       currentRecordingId,
     );
 
-    // Affichage du résultat
+    // Affichage de la transcription classique
     transcriptionLoading.classList.add(
       'visio-hidden',
     );
@@ -394,9 +441,55 @@ async function handleRecordingStop() {
     transcriptionStatus.textContent =
       'Transcription terminée';
 
+    transcriptionContent.classList.remove(
+      'visio-hidden',
+    );
+
+    transcriptionSegments.classList.add(
+      'visio-hidden',
+    );
+
     transcriptionContent.textContent =
       result.transcript ||
       '(Aucune transcription disponible)';
+
+    // Tentative de diarisation
+    try {
+      transcriptionStatus.textContent =
+        'Identification des intervenants...';
+
+      const diarizationResult = await diarizeAudio(
+        currentRecordingId,
+      );
+
+      const displayed = displaySpeakerSegments(
+        diarizationResult.segments,
+      );
+
+      if (displayed) {
+        transcriptionStatus.textContent =
+          'Transcription terminée';
+      }
+
+    } catch (diarizationError) {
+      console.warn(
+        'La diarisation est indisponible. La transcription normale est conservée.',
+        diarizationError,
+      );
+
+      transcriptionSegments.innerHTML = '';
+
+      transcriptionSegments.classList.add(
+        'visio-hidden',
+      );
+
+      transcriptionContent.classList.remove(
+        'visio-hidden',
+      );
+
+      transcriptionStatus.textContent =
+        'Transcription terminée';
+    }
 
   } catch (error) {
     console.error(error);
@@ -448,6 +541,10 @@ newRecordingButton.addEventListener('click', () => {
   clearTranscriptionError();
 
   transcriptionContent.textContent = '';
+
+  transcriptionSegments.innerHTML = '';
+  transcriptionSegments.classList.add('visio-hidden');
+  transcriptionContent.classList.remove('visio-hidden');
 
   showRecordingView();
 });

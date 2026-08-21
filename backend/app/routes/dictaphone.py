@@ -1,4 +1,5 @@
 from pathlib import Path
+import traceback
 
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from sqlalchemy.orm import Session
@@ -223,18 +224,21 @@ def diarize_audio(
     audio_path = audio_files[0]
 
     try:
+        # 1. Transcription avec les timestamps de chaque segment
         whisper_service = WhisperService()
 
         transcription_segments = (
             whisper_service.transcribe_segments(str(audio_path))
         )
 
+        # 2. Diarisation avec Pyannote
         pyannote_service = request.app.state.pyannote_service
 
         diarization_segments = (
             pyannote_service.diarize(str(audio_path))
         )
 
+        # 3. Association des segments Whisper avec les speakers Pyannote
         assignment_service = SpeakerAssignmentService()
 
         assigned_segments = assignment_service.assign_speakers(
@@ -242,30 +246,39 @@ def diarize_audio(
             diarization_segments,
         )
 
+        # 4. Suppression des anciens segments du recording
+        db.query(TranscriptSegment).filter(
+            TranscriptSegment.recording_id == recording.id
+        ).delete(
+            synchronize_session=False
+        )
+
+        # 5. Enregistrement des nouveaux segments en base
+        for segment in assigned_segments:
+            transcript_segment = TranscriptSegment(
+                recording_id=recording.id,
+                start=segment["start"],
+                end=segment["end"],
+                text=segment["text"],
+                speaker=segment["speaker"],
+            )
+
+            db.add(transcript_segment)
+
+        # 6. Validation de la transaction
+        db.commit()
+
     except Exception as exc:
+        db.rollback()
+
+        # Affiche le traceback complet dans le terminal Uvicorn
+        # pendant la phase de diagnostic.
+        traceback.print_exc()
+
         raise HTTPException(
             status_code=502,
             detail=f"Erreur lors de la diarisation : {exc}",
         )
-
-    # Supprime les anciens segments afin d'éviter les doublons
-    db.query(TranscriptSegment).filter(
-        TranscriptSegment.recording_id == recording.id
-    ).delete(synchronize_session=False)
-
-    # Enregistre les nouveaux segments en base
-    for segment in assigned_segments:
-        db_segment = TranscriptSegment(
-            recording_id=recording.id,
-            start=segment["start"],
-            end=segment["end"],
-            text=segment["text"],
-            speaker=segment["speaker"],
-        )
-
-        db.add(db_segment)
-
-    db.commit()
 
     return {
         "recording_id": recording.id,
