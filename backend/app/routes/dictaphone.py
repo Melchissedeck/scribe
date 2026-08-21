@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.recording import Recording
+from app.models.transcript_segment import TranscriptSegment
 from app.models.user import User
 from app.services.speaker_assignment_service import SpeakerAssignmentService
 from app.services.whisper_service import WhisperService
@@ -246,6 +247,25 @@ def diarize_audio(
             status_code=502,
             detail=f"Erreur lors de la diarisation : {exc}",
         )
+
+    # Supprime les anciens segments afin d'éviter les doublons
+    db.query(TranscriptSegment).filter(
+        TranscriptSegment.recording_id == recording.id
+    ).delete(synchronize_session=False)
+
+    # Enregistre les nouveaux segments en base
+    for segment in assigned_segments:
+        db_segment = TranscriptSegment(
+            recording_id=recording.id,
+            start=segment["start"],
+            end=segment["end"],
+            text=segment["text"],
+            speaker=segment["speaker"],
+        )
+
+        db.add(db_segment)
+
+    db.commit()
 
     return {
         "recording_id": recording.id,

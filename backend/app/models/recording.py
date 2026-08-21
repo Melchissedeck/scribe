@@ -21,3 +21,8 @@ class Recording(Base):
     stopped_at = Column(DateTime, nullable=True)
 
     user = relationship('User', back_populates='recordings')
+    segments = relationship(
+    "TranscriptSegment",
+    back_populates="recording",
+    cascade="all, delete-orphan",
+    )
