@@ -9,10 +9,11 @@ from app.config import settings
 # Windows : rendre les DLL FFmpeg visibles à torchcodec
 # avant d'importer pyannote.
 if os.name == "nt":
-    ffmpeg_bin = Path(settings.ffmpeg_bin)
+    if settings.ffmpeg_bin:
+        ffmpeg_bin = Path(settings.ffmpeg_bin)
 
-    if ffmpeg_bin.is_dir():
-        os.add_dll_directory(str(ffmpeg_bin))
+        if ffmpeg_bin.is_dir():
+            os.add_dll_directory(str(ffmpeg_bin))
 
 
 from pyannote.audio import Pipeline
