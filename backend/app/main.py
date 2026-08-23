@@ -20,6 +20,7 @@ from app.routes import (
     meetings,
     users,
     actions,
+    action_status,
 )
 from app.services.pyannote_service import PyannoteService
 
@@ -97,7 +98,7 @@ app.include_router(summary.router)
 app.include_router(meetings.router)
 app.include_router(users.router)
 app.include_router(actions.router)
-
+app.include_router(action_status.router)
 
 @app.get("/health")
 def health_check() -> dict[str, str]:
