@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime, time as dt_time
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -17,11 +17,6 @@ from vexa_agent import VexaAgent
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix='/recording', tags=['recording'])
-
-
-def _seconds_to_time(seconds: float) -> dt_time:
-    s = max(0, int(seconds))
-    return dt_time(hour=min(s // 3600, 23), minute=(s % 3600) // 60, second=s % 60)
 
 
 def _deduplicate_segments(raw_segments: list[dict]) -> list[dict]:
@@ -71,10 +66,10 @@ def _save_diarized_segments(db: Session, recording_id: int, raw_segments: list[d
         vexa_label = seg.get('speaker', 'Inconnu')
         db.add(TranscriptSegment(
             recording_id=recording_id,
-            speaker_id=speaker_map[vexa_label].id,
+            speaker=vexa_label,
             text=seg.get('text', '').strip(),
-            start_time=_seconds_to_time(seg.get('start', 0)),
-            end_time=_seconds_to_time(seg.get('end', 0)),
+            start=seg.get('start', 0),
+            end=seg.get('end', 0),
         ))
 
     db.commit()
