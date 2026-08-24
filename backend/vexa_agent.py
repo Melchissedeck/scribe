@@ -44,13 +44,17 @@ class VexaAgent:
             'Content-Type': 'application/json',
         }
 
-    def send_bot(self, platform: str, meeting_id: str, bot_name: str = 'Scribe') -> dict:
+    def send_bot(self, platform: str, meeting_id: str, bot_name: str = 'Scribe', meeting_url: str | None = None) -> dict:
+        if meeting_url:
+            payload: dict = {'meeting_url': meeting_url, 'bot_name': bot_name}
+        else:
+            payload = {'platform': platform, 'native_meeting_id': meeting_id, 'bot_name': bot_name}
         try:
 <<<<<<< Updated upstream
             response = requests.post(
                 f'{self.base_url}/bots',
                 headers=self.headers,
-                json={'platform': platform, 'native_meeting_id': meeting_id, 'bot_name': bot_name},
+                json=payload,
                 timeout=_TIMEOUT,
 =======
             response = _http_call_with_retry(

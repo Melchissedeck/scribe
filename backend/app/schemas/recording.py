@@ -9,6 +9,7 @@ class RecordingCreate(BaseModel):
     platform: str
     native_meeting_id: str
     bot_name: str = 'Scribe'
+    meeting_url: str | None = None
 
 
 class RecordingRead(BaseModel):
