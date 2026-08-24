@@ -40,6 +40,33 @@ def list_actions(
         for a in actions
     ]
 
+@router.get('/open', response_model=list[ActionResponse])
+def list_open_actions(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    actions = (
+        db.query(Action)
+        .join(Recording, Action.recording_id == Recording.id)
+        .filter(
+            Recording.user_id == current_user.id,
+            Action.status.in_(['todo', 'in_progress']),
+        )
+        .order_by(Action.due_date.is_(None), Action.due_date.asc())
+        .all()
+    )
+
+    return [
+        ActionResponse(
+            id=a.id,
+            description=a.description,
+            status=a.status,
+            due_date=a.due_date,
+            speaker_id=a.speaker_id,
+        )
+        for a in actions
+    ]
+
 @router.patch('/{action_id}', response_model=ActionResponse)
 def update_action_status(
     action_id: int,
