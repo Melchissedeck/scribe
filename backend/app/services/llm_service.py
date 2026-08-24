@@ -1,7 +1,6 @@
 import json
 import logging
 import re
-from typing import Optional
 
 from pydantic import ValidationError
 from together import Together
@@ -20,7 +19,7 @@ class LLMService:
         self.client = Together(api_key=settings.together_api_key)
         self.model = settings.together_model
 
-    def generate_summary(self, transcription: str) -> Optional[str]:
+    def generate_summary(self, transcription: str) -> str | None:
         """
         Génère un résumé en texte libre à partir d'une transcription.
 
@@ -44,7 +43,8 @@ class LLMService:
                 model=self.model,
                 messages=[{"role": "user", "content": prompt}],
             )
-            return response.choices[0].message.content
+            message = response.choices[0].message
+            return message.content if message is not None else None
 
         except TogetherException as exc:
             logger.error("Erreur TogetherAI lors de la génération du résumé: %s", exc)
@@ -56,7 +56,7 @@ class LLMService:
 
     def generate_structured_summary(
         self, transcription: str, max_attempts: int = 2
-    ) -> Optional[StructuredSummary]:
+    ) -> StructuredSummary | None:
         """
         Génère un compte-rendu structuré (thèmes, décisions, actions) en
         JSON à partir d'une transcription.
@@ -100,7 +100,8 @@ class LLMService:
                         {"role": "user", "content": user_prompt},
                     ],
                 )
-                raw_content = response.choices[0].message.content
+                message = response.choices[0].message
+                raw_content = message.content if message is not None else None
 
             except TogetherException as exc:
                 logger.error("Erreur TogetherAI lors de la génération du compte-rendu structuré: %s", exc)
@@ -123,7 +124,7 @@ class LLMService:
         return None
 
     @staticmethod
-    def _parse_structured_response(raw_content: str) -> Optional[StructuredSummary]:
+    def _parse_structured_response(raw_content: str | None) -> StructuredSummary | None:
         """
         Extrait et valide un StructuredSummary à partir de la réponse brute
         du LLM. Retourne None si le contenu n'est pas un JSON valide et

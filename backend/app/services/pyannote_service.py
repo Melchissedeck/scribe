@@ -5,7 +5,6 @@ from pathlib import Path
 
 from app.config import settings
 
-
 # Windows : rendre les DLL FFmpeg visibles à torchcodec
 # avant d'importer pyannote.
 if os.name == "nt":
@@ -95,7 +94,11 @@ class PyannoteService:
         wav_path = self._to_wav(audio_path)
 
         try:
-            output = self.pipeline(wav_path)
+            # Stubs pyannote.audio imprecis : Pipeline.from_pretrained() est
+            # type comme pouvant renvoyer None, et l'objet retourne par un
+            # appel du pipeline n'expose pas .speaker_diarization dans ses
+            # stubs alors qu'il l'expose reellement a l'execution.
+            output = self.pipeline(wav_path)  # type: ignore[misc]
 
             return [
                 {
@@ -103,7 +106,7 @@ class PyannoteService:
                     "end": turn.end,
                     "speaker": speaker,
                 }
-                for turn, speaker in output.speaker_diarization
+                for turn, speaker in output.speaker_diarization  # type: ignore[union-attr]
             ]
 
         finally:
