@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Scribe IA - Accueil</title>
+  <title>Scribe IA - Actions</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
@@ -12,7 +12,6 @@
 <body>
   <div class="dash-shell">
 
-    <!-- ── Sidebar ─────────────────────────────────────────────────────── -->
     <aside class="dash-sidebar">
 
       <div class="dash-logo">
@@ -26,7 +25,7 @@
       </div>
 
       <nav class="dash-nav">
-        <a href="accueil.html" class="dash-nav-item active">
+        <a href="accueil.html" class="dash-nav-item">
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
           <span>Mémoire de l'équipe</span>
         </a>
@@ -41,7 +40,7 @@
           <span>Planifier une réunion</span>
         </div>
 
-        <a href="actions.html" class="dash-nav-item">
+        <a href="actions.html" class="dash-nav-item active">
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
           <span>Actions</span>
         </a>
@@ -77,10 +76,9 @@
       </div>
     </aside>
 
-    <!-- ── Main ──────────────────────────────────────────────────────────── -->
     <div class="dash-main">
       <header class="dash-header">
-        <h2>Mémoire de l'équipe</h2>
+        <h2>Actions</h2>
         <div class="dash-header-actions">
           <div class="dash-avatar" id="user-avatar">SC</div>
         </div>
@@ -90,28 +88,30 @@
         <div class="dash-page">
           <div class="dash-page-header">
             <div>
-              <h1>Mémoire de l'équipe</h1>
-              <p>Retrouvez rapidement vos réunions passées.</p>
+              <h1>Mes actions</h1>
+              <p>Suivez les tâches issues de vos réunions.</p>
             </div>
           </div>
 
           <div class="filters-bar" style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:20px;">
-            <input type="text" id="filter-theme" placeholder="Filtrer par thème..." style="padding:8px 12px; border:1px solid var(--scribe-border); border-radius:8px; flex:1; min-width:180px;">
-            <input type="date" id="filter-date-from" style="padding:8px 12px; border:1px solid var(--scribe-border); border-radius:8px;">
-            <input type="date" id="filter-date-to" style="padding:8px 12px; border:1px solid var(--scribe-border); border-radius:8px;">
-            <button id="filter-reset" class="ghost-btn">Réinitialiser</button>
+            <select id="filter-status" style="padding:8px 12px; border:1px solid var(--scribe-border); border-radius:8px;">
+              <option value="">Tous les statuts</option>
+              <option value="todo">À faire</option>
+              <option value="in_progress">En cours</option>
+              <option value="done">Terminé</option>
+            </select>
           </div>
 
-          <div id="meeting-grid" class="session-grid"></div>
+          <div id="action-list" class="session-grid"></div>
 
           <div id="empty-state" class="empty-state" hidden>
-            <strong>Aucune réunion trouvée</strong>
-            Essayez de modifier vos filtres ou enregistrez votre première réunion.
+            <strong>Aucune action trouvée</strong>
+            Générez un compte-rendu structuré pour extraire des actions.
           </div>
 
           <div id="error-state" class="empty-state" hidden>
             <strong>Erreur</strong>
-            Impossible de charger vos réunions pour le moment.
+            Impossible de charger vos actions pour le moment.
           </div>
         </div>
       </div>
@@ -119,6 +119,6 @@
 
   </div>
 
-  <script type="module" src="../js/accueil.js"></script>
+  <script type="module" src="../js/actions.js"></script>
 </body>
 </html>
