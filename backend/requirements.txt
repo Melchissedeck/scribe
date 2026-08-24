@@ -14,3 +14,5 @@ together>=1.5.0
 pyannote.audio>=4.0.7
 pytest==9.1.1
 httpx==0.28.1
+ruff>=0.16.0
+mypy>=2.3.0
