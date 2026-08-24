@@ -94,6 +94,10 @@ export function getOpenActions() {
   return apiRequest('/actions/open', { method: 'GET' });
 }
 
+export function getMeetingsCount() {
+  return getMeetings().then((meetings) => meetings.length);
+}
+
 export function updateActionStatus(actionId, status) {
   return apiRequest(`/actions/${actionId}`, {
     method: 'PATCH',
