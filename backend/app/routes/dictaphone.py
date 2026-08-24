@@ -1,5 +1,5 @@
-from pathlib import Path
 import traceback
+from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from sqlalchemy.orm import Session
@@ -11,7 +11,6 @@ from app.models.transcript_segment import TranscriptSegment
 from app.models.user import User
 from app.services.speaker_assignment_service import SpeakerAssignmentService
 from app.services.whisper_service import WhisperService
-
 
 router = APIRouter(
     prefix="/meetings",
@@ -103,7 +102,7 @@ async def upload_audio(
         raise HTTPException(
             status_code=500,
             detail=f"Impossible de sauvegarder le fichier audio : {exc}",
-        )
+        ) from exc
 
     return {
         "recording_id": recording.id,
@@ -165,7 +164,7 @@ def transcribe_audio(
         raise HTTPException(
             status_code=502,
             detail=f"Erreur lors de la transcription : {exc}",
-        )
+        ) from exc
 
     recording.transcript = transcript
 
@@ -278,7 +277,7 @@ def diarize_audio(
         raise HTTPException(
             status_code=502,
             detail=f"Erreur lors de la diarisation : {exc}",
-        )
+        ) from exc
 
     return {
         "recording_id": recording.id,
