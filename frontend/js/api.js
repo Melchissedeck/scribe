@@ -90,4 +90,15 @@ export function getActions(status = null) {
   return apiRequest(path, { method: 'GET' });
 }
 
+export function getOpenActions() {
+  return apiRequest('/actions/open', { method: 'GET' });
+}
+
+export function updateActionStatus(actionId, status) {
+  return apiRequest(`/actions/${actionId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status }),
+  });
+}
+
 export { ApiError };

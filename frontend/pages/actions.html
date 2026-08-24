@@ -93,13 +93,12 @@
             </div>
           </div>
 
-          <div class="filters-bar" style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:20px;">
-            <select id="filter-status" style="padding:8px 12px; border:1px solid var(--scribe-border); border-radius:8px;">
-              <option value="">Tous les statuts</option>
-              <option value="todo">À faire</option>
-              <option value="in_progress">En cours</option>
-              <option value="done">Terminé</option>
-            </select>
+
+         <div style="margin-bottom:16px;">
+            <label style="display:flex; align-items:center; gap:8px; cursor:pointer; color:var(--scribe-text-secondary);">
+              <input type="checkbox" id="show-completed">
+              Afficher aussi les actions terminées
+            </label>
           </div>
 
           <div id="action-list" class="session-grid"></div>
