@@ -70,6 +70,10 @@ export function getDiarizedTranscript(meetingId) {
   return apiRequest(`/meetings/${meetingId}/diarized-transcript`, { method: 'GET' });
 }
 
+export function getMeetingDetails(meetingId) {
+  return apiRequest(`/meetings/${meetingId}/details`, { method: 'GET' });
+}
+
 export function startRecording(platform, nativeMeetingId, botName) {
   return apiRequest('/recording/start', {
     method: 'POST',

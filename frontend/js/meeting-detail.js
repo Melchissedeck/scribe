@@ -1,10 +1,12 @@
-import { getMeetingSummary, getDiarizedTranscript, ApiError } from './api.js';
+import { getMeetingDetails, updateActionStatus, ApiError } from './api.js';
 
 const themeEl = document.getElementById('meeting-theme');
 const dateEl = document.getElementById('meeting-date');
 const summaryEl = document.getElementById('meeting-summary');
 const speakersCard = document.getElementById('speakers-card');
 const speakersTranscript = document.getElementById('speakers-transcript');
+const actionsCard = document.getElementById('actions-card');
+const actionsList = document.getElementById('actions-list');
 
 const SPEAKER_COLORS = [
   { bg: '#EAF1FF', text: '#2563EB' },
@@ -14,6 +16,12 @@ const SPEAKER_COLORS = [
   { bg: '#EDE9FE', text: '#5B21B6' },
   { bg: '#FFEDD5', text: '#9A3412' },
 ];
+
+const STATUS_LABELS = {
+  todo: 'À faire',
+  in_progress: 'En cours',
+  done: 'Terminé',
+};
 
 requireAuth();
 loadMeetingData();
@@ -35,46 +43,33 @@ async function loadMeetingData() {
     return;
   }
 
-  await Promise.all([
-    loadSummary(meetingId),
-    loadSpeakers(meetingId),
-  ]);
-}
-
-async function loadSummary(meetingId) {
   try {
-    const result = await getMeetingSummary(meetingId);
-    themeEl.textContent = 'Compte-rendu';
-    summaryEl.textContent = result.summary;
+    const details = await getMeetingDetails(meetingId);
+    renderSummary(details);
+    renderSpeakers(details.segments);
+    renderActions(details.actions);
   } catch (error) {
     if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
       window.location.href = 'login.html';
       return;
     }
     if (error instanceof ApiError && error.status === 404) {
-      summaryEl.textContent = "Le compte-rendu n'est pas encore disponible pour cette réunion.";
+      summaryEl.textContent = 'Réunion introuvable.';
       return;
     }
-    summaryEl.textContent = 'Impossible de charger le compte-rendu pour le moment.';
+    summaryEl.textContent = 'Impossible de charger cette réunion pour le moment.';
   }
 }
 
-async function loadSpeakers(meetingId) {
-  try {
-    const result = await getDiarizedTranscript(meetingId);
-    if (!result.segments || result.segments.length === 0) return;
-    renderSpeakers(result.segments);
-  } catch (error) {
-    // 404 = pas de diarisation, on n'affiche rien (cas normal pour réunions sans segments)
-    if (error instanceof ApiError && error.status === 404) return;
-    if (error instanceof ApiError && (error.status === 401 || error.status === 403)) return;
-    // Erreur inattendue : on affiche un message discret
-    speakersCard.style.display = '';
-    speakersTranscript.textContent = 'Impossible de charger les intervenants.';
-  }
+function renderSummary(details) {
+  themeEl.textContent = details.theme || 'Compte-rendu';
+  dateEl.textContent = new Date(details.started_at).toLocaleString('fr-FR');
+  summaryEl.textContent = details.summary || "Le compte-rendu n'est pas encore disponible pour cette réunion.";
 }
 
 function renderSpeakers(segments) {
+  if (!segments || segments.length === 0) return;
+
   const colorMap = {};
   let colorIndex = 0;
 
@@ -113,4 +108,46 @@ function renderSpeakers(segments) {
   });
 
   speakersCard.style.display = '';
+}
+
+function renderActions(actions) {
+  if (!actions || actions.length === 0) return;
+
+  actions.forEach((action) => {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:12px;';
+
+    const text = document.createElement('p');
+    text.textContent = action.description;
+    text.style.cssText = 'margin:0;font-size:13.5px;line-height:1.5;color:#334155;flex:1;';
+
+    const select = document.createElement('select');
+    select.style.cssText = 'padding:6px 10px;border:1px solid #E2E8F0;border-radius:8px;font-size:12px;';
+    Object.entries(STATUS_LABELS).forEach(([value, label]) => {
+      const option = document.createElement('option');
+      option.value = value;
+      option.textContent = label;
+      option.selected = action.status === value;
+      select.appendChild(option);
+    });
+    select.addEventListener('change', () => handleActionStatusChange(action.id, select.value));
+
+    row.appendChild(text);
+    row.appendChild(select);
+    actionsList.appendChild(row);
+  });
+
+  actionsCard.style.display = '';
+}
+
+async function handleActionStatusChange(actionId, newStatus) {
+  try {
+    await updateActionStatus(actionId, newStatus);
+  } catch (error) {
+    if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
+      window.location.href = 'login.html';
+      return;
+    }
+    alert("Impossible de mettre à jour le statut de l'action pour le moment.");
+  }
 }
