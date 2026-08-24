@@ -14,6 +14,19 @@ router = APIRouter(prefix='/auth', tags=['auth'])
 
 @router.post('/register', response_model=UserRead, status_code=status.HTTP_201_CREATED)
 def register(user_data: UserCreate, db: Session = Depends(get_db)) -> User:
+    """Crée un nouveau compte utilisateur.
+
+    Args:
+        user_data: Nom, email et mot de passe en clair du nouveau compte.
+        db: Session de base de données injectée par FastAPI.
+
+    Returns:
+        L'utilisateur créé, sans le mot de passe.
+
+    Raises:
+        HTTPException: Code 400 si l'email est déjà utilisé par un autre
+            compte.
+    """
     # Verifie que l'email n'est pas deja utilise avant de creer le compte
     existing_user = db.query(User).filter(User.email == user_data.email).first()
     if existing_user is not None:
@@ -36,6 +49,21 @@ def register(user_data: UserCreate, db: Session = Depends(get_db)) -> User:
 
 @router.post('/login', response_model=Token)
 def login(credentials: UserLogin, db: Session = Depends(get_db)) -> Token:
+    """Authentifie un utilisateur et retourne un token d'accès JWT.
+
+    Args:
+        credentials: Email et mot de passe en clair à vérifier.
+        db: Session de base de données injectée par FastAPI.
+
+    Returns:
+        Un token d'accès JWT à utiliser dans l'en-tête Authorization des
+        requêtes suivantes.
+
+    Raises:
+        InvalidCredentialsError: Si l'email est inconnu ou si le mot de
+            passe ne correspond pas (convertie en réponse HTTP 401 par
+            le handler global enregistré dans main.py).
+    """
     # Verifie les identifiants et retourne un token d'acces en cas de succes
     user = db.query(User).filter(User.email == credentials.email).first()
 
