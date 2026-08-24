@@ -231,7 +231,11 @@ def diarize_audio(
         )
 
         # 2. Diarisation avec Pyannote
-        pyannote_service = request.app.state.pyannote_service
+        # Import différé : évite de charger torch/pyannote au démarrage de
+        # l'application, seulement lors de la première diarisation.
+        from app.services.pyannote_service import get_pyannote_service
+
+        pyannote_service = get_pyannote_service(request.app)
 
         diarization_segments = (
             pyannote_service.diarize(str(audio_path))

@@ -22,13 +22,14 @@ from app.routes import (
     summary,
     users,
 )
-from app.services.pyannote_service import PyannoteService
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Charge le pipeline Pyannote au démarrage de l'application
-    app.state.pyannote_service = PyannoteService()
+    # Le pipeline Pyannote (torch + poids du modèle) est chargé au besoin,
+    # au premier appel de diarisation, pas au démarrage : voir
+    # app.services.pyannote_service.get_pyannote_service().
+    app.state.pyannote_service = None
 
     yield
 
