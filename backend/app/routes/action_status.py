@@ -1,5 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
+from typing import Optional
 
 from app.database import get_db
 from app.dependencies import get_current_user
@@ -10,6 +11,30 @@ from app.schemas.action import ActionResponse, ActionStatusUpdate
 
 router = APIRouter(prefix='/actions', tags=['actions'])
 
+@router.get('', response_model=list[ActionResponse])
+def list_actions(
+    status: Optional[str] = Query(default=None, description="Filtre par statut : todo, in_progress ou done"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    query = (
+        db.query(Action)
+        .join(Recording, Action.recording_id == Recording.id)
+        .filter(Recording.user_id == current_user.id)
+    )
+    if status:
+        query = query.filter(Action.status == status)
+    actions = query.order_by(Action.id.desc()).all()
+    return [
+        ActionResponse(
+            id=a.id,
+            description=a.description,
+            status=a.status,
+            due_date=a.due_date,
+            speaker_id=a.speaker_id,
+        )
+        for a in actions
+    ]
 
 @router.patch('/{action_id}', response_model=ActionResponse)
 def update_action_status(
@@ -27,14 +52,11 @@ def update_action_status(
         )
         .first()
     )
-
     if not action:
         raise HTTPException(status_code=404, detail='Action introuvable.')
-
     action.status = payload.status
     db.commit()
     db.refresh(action)
-
     return ActionResponse(
         id=action.id,
         description=action.description,
