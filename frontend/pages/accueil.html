@@ -91,13 +91,27 @@
           <div class="dash-page-header">
             <div>
               <h1>Mémoire de l'équipe</h1>
-              <p>Vue d'ensemble de l'activité de votre équipe.</p>
+              <p>Retrouvez rapidement vos réunions passées.</p>
             </div>
           </div>
 
-          <div class="empty-state">
-            <strong>Bientôt disponible</strong>
-            Cette section affichera la mémoire collective de votre équipe.
+          <div class="filters-bar" style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:20px;">
+            <input type="text" id="filter-theme" placeholder="Filtrer par thème..." style="padding:8px 12px; border:1px solid var(--scribe-border); border-radius:8px; flex:1; min-width:180px;">
+            <input type="date" id="filter-date-from" style="padding:8px 12px; border:1px solid var(--scribe-border); border-radius:8px;">
+            <input type="date" id="filter-date-to" style="padding:8px 12px; border:1px solid var(--scribe-border); border-radius:8px;">
+            <button id="filter-reset" class="ghost-btn">Réinitialiser</button>
+          </div>
+
+          <div id="meeting-grid" class="session-grid"></div>
+
+          <div id="empty-state" class="empty-state" hidden>
+            <strong>Aucune réunion trouvée</strong>
+            Essayez de modifier vos filtres ou enregistrez votre première réunion.
+          </div>
+
+          <div id="error-state" class="empty-state" hidden>
+            <strong>Erreur</strong>
+            Impossible de charger vos réunions pour le moment.
           </div>
         </div>
       </div>

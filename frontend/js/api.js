@@ -1,6 +1,6 @@
 ﻿// Module centralisant les appels vers l'API backend
 
-const API_BASE_URL = 'https://127.0.0.1:8000';
+const API_BASE_URL = 'http://127.0.0.1:8000';
 
 class ApiError extends Error {
   constructor(message, status) {
@@ -50,8 +50,16 @@ export function loginUser(email, password) {
   });
 }
 
-export function getMeetings() {
-  return apiRequest('/meetings', { method: 'GET' });
+export function getMeetings(filters = {}) {
+  const params = new URLSearchParams();
+  if (filters.theme) params.set('theme', filters.theme);
+  if (filters.date_from) params.set('date_from', filters.date_from);
+  if (filters.date_to) params.set('date_to', filters.date_to);
+
+  const query = params.toString();
+  const path = query ? `/meetings?${query}` : '/meetings';
+
+  return apiRequest(path, { method: 'GET' });
 }
 
 export function getMeetingSummary(meetingId) {
@@ -75,6 +83,11 @@ export function stopRecording(recordingId) {
 
 export function refreshTranscript(recordingId) {
   return apiRequest(`/recording/${recordingId}/transcript`, { method: 'GET' });
+}
+
+export function getActions(status = null) {
+  const path = status ? `/actions?status=${encodeURIComponent(status)}` : '/actions';
+  return apiRequest(path, { method: 'GET' });
 }
 
 export { ApiError };
