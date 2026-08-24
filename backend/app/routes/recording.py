@@ -25,7 +25,7 @@ def _deduplicate_segments(raw_segments: list[dict]) -> list[dict]:
     Vexa retourne un transcript cumulatif : chaque appel inclut tous les segments
     depuis le début, ce qui produit des doublons quand on poll plusieurs fois.
     """
-    clean = []
+    clean: list[dict] = []
     for seg in raw_segments:
         text = seg.get('text', '').strip()
         if not text:

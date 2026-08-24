@@ -18,7 +18,10 @@ class WhisperService:
                 response_format="text",
             )
 
-        return transcription
+        # Les stubs du SDK Groq typent .create() comme renvoyant toujours un
+        # objet Transcription, quel que soit response_format ; avec "text" il
+        # renvoie en realite directement une chaine.
+        return transcription  # type: ignore[return-value]
 
     def transcribe_segments(self, audio_path: str) -> list[dict]:
         with open(audio_path, "rb") as audio_file:
@@ -35,5 +38,7 @@ class WhisperService:
                 "end": segment["end"],
                 "text": segment["text"].strip(),
             }
-            for segment in transcription.segments
+            # Meme limitation de stub : la reponse verbose_json contient bien
+            # un champ "segments" que le type Transcription ne declare pas.
+            for segment in transcription.segments  # type: ignore[attr-defined]
         ]

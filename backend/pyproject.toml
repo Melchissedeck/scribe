@@ -1,0 +1,28 @@
+[tool.ruff]
+line-length = 120
+target-version = "py313"
+extend-exclude = ["alembic/versions", "venv"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+# E501 : longueur de ligne, non bloquante.
+# B008 : appel de fonction en valeur par defaut (Depends(...)), idiome FastAPI standard.
+ignore = ["E501", "B008"]
+
+[tool.mypy]
+python_version = "3.13"
+exclude = ["alembic/versions", "venv"]
+ignore_missing_imports = true
+check_untyped_defs = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+# arg-type / assignment : les modeles utilisent le style declaratif classique de
+# SQLAlchemy (Column(...) sans Mapped[...]), donc mypy type chaque attribut
+# d'instance comme "Column[T]" au lieu de "T" (ou "T | None" pour toute colonne
+# nullable, y compris les cles primaires avant flush). Ça declenche des centaines
+# de faux positifs des qu'un objet ORM deja charge depuis la base est passe a une
+# fonction ou un schema Pydantic. Une vraie resolution demanderait de migrer tous
+# les modeles vers le style type de SQLAlchemy 2.0 (Mapped[...] / mapped_column),
+# hors perimetre de ce ticket : a envisager comme ticket dedie si l'equipe veut
+# une verification stricte sur les attributs d'instance ORM.
+disable_error_code = ["arg-type", "assignment"]

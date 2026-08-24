@@ -33,7 +33,8 @@ class VexaAgent:
             logger.error('Vexa - erreur de connexion (send_bot): %s', exc)
             raise VexaConnectionError() from exc
         except HTTPError as exc:
-            logger.error('Vexa - erreur HTTP %s (send_bot): %s', exc.response.status_code, exc)
+            status_code = exc.response.status_code if exc.response is not None else 'inconnu'
+            logger.error('Vexa - erreur HTTP %s (send_bot): %s', status_code, exc)
             raise VexaConnectionError(str(exc)) from exc
 
     def stop_bot(self, platform: str, meeting_id: str) -> int:
@@ -48,7 +49,8 @@ class VexaAgent:
             logger.error('Vexa - erreur de connexion (stop_bot): %s', exc)
             raise VexaConnectionError() from exc
         except HTTPError as exc:
-            logger.error('Vexa - erreur HTTP %s (stop_bot): %s', exc.response.status_code, exc)
+            status_code = exc.response.status_code if exc.response is not None else 'inconnu'
+            logger.error('Vexa - erreur HTTP %s (stop_bot): %s', status_code, exc)
             raise VexaConnectionError(str(exc)) from exc
 
     def get_transcript(self, platform: str, meeting_id: str) -> str:
@@ -78,5 +80,6 @@ class VexaAgent:
             logger.error('Vexa - erreur de connexion (_fetch_segments): %s', exc)
             raise VexaConnectionError() from exc
         except HTTPError as exc:
-            logger.error('Vexa - erreur HTTP %s (_fetch_segments): %s', exc.response.status_code, exc)
+            status_code = exc.response.status_code if exc.response is not None else 'inconnu'
+            logger.error('Vexa - erreur HTTP %s (_fetch_segments): %s', status_code, exc)
             raise VexaConnectionError(str(exc)) from exc

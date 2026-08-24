@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import Optional
 
 from pydantic import BaseModel
 
@@ -19,10 +18,10 @@ class RecordingRead(BaseModel):
     native_meeting_id: str
     bot_name: str
     status: str
-    transcript: Optional[str] = None
-    summary: Optional[str] = None
+    transcript: str | None = None
+    summary: str | None = None
     started_at: datetime
-    stopped_at: Optional[datetime] = None
+    stopped_at: datetime | None = None
 
     model_config = {'from_attributes': True}
 
@@ -34,10 +33,10 @@ class SummaryResponse(BaseModel):
 
 class MeetingListItem(BaseModel):
     id: int
-    theme: Optional[str] = None
+    theme: str | None = None
     date: datetime
     status: str
-    summary_excerpt: Optional[str] = None
+    summary_excerpt: str | None = None
 
     model_config = {'from_attributes': True}
 
@@ -57,18 +56,18 @@ class DiarizedTranscriptResponse(BaseModel):
 class SpeakerOut(BaseModel):
     id: int
     provisional_name: str
-    real_name: Optional[str] = None
+    real_name: str | None = None
 
     model_config = {'from_attributes': True}
 
 
 class MeetingDetailResponse(BaseModel):
     id: int
-    theme: Optional[str] = None
+    theme: str | None = None
     status: str
     started_at: datetime
-    stopped_at: Optional[datetime] = None
-    summary: Optional[str] = None
+    stopped_at: datetime | None = None
+    summary: str | None = None
     speakers: list[SpeakerOut]
     segments: list[SegmentOut]
     actions: list[ActionResponse]

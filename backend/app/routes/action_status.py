@@ -1,6 +1,6 @@
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from typing import Optional
 
 from app.database import get_db
 from app.dependencies import get_current_user
@@ -13,7 +13,7 @@ router = APIRouter(prefix='/actions', tags=['actions'])
 
 @router.get('', response_model=list[ActionResponse])
 def list_actions(
-    status: Optional[str] = Query(default=None, description="Filtre par statut : todo, in_progress ou done"),
+    status: str | None = Query(default=None, description="Filtre par statut : todo, in_progress ou done"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):

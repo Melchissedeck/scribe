@@ -1,4 +1,3 @@
-from typing import Optional
 
 from pydantic import BaseModel, Field
 
@@ -7,10 +6,10 @@ class ActionItem(BaseModel):
     """Une action décidée pendant la réunion."""
 
     description: str = Field(..., description="Ce qui doit être fait")
-    responsable: Optional[str] = Field(
+    responsable: str | None = Field(
         default=None, description="Personne en charge de l'action, si mentionnée"
     )
-    echeance: Optional[str] = Field(
+    echeance: str | None = Field(
         default=None, description="Échéance de l'action, si mentionnée (texte libre ou date)"
     )
 

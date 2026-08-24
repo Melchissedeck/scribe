@@ -7,7 +7,6 @@ from app.config import settings
 from app.exceptions import InvalidCredentialsError, TokenExpiredError
 from app.services.jwt import create_access_token, decode_access_token
 
-
 # ── Inscription ──────────────────────────────────────────────────────────
 
 def test_register_creates_user(client):
