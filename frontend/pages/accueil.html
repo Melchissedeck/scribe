@@ -95,7 +95,33 @@
             </div>
           </div>
 
-          <div class="filters-bar" style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:20px;">
+                    <div id="stats-row" class="session-grid" style="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); margin-bottom: 28px;">
+            <div class="card" style="padding:18px;">
+              <div style="font-size:11px; color:var(--scribe-text-faint); font-family:var(--scribe-font-mono); text-transform:uppercase; letter-spacing:.05em; margin-bottom:8px;">Total réunions</div>
+              <div id="stat-total-meetings" style="font-size:28px; font-weight:800;">—</div>
+            </div>
+            <div class="card" style="padding:18px;">
+              <div style="font-size:11px; color:var(--scribe-text-faint); font-family:var(--scribe-font-mono); text-transform:uppercase; letter-spacing:.05em; margin-bottom:8px;">Comptes-rendus</div>
+              <div id="stat-summaries" style="font-size:28px; font-weight:800;">—</div>
+            </div>
+            <div class="card" style="padding:18px;">
+              <div style="font-size:11px; color:var(--scribe-text-faint); font-family:var(--scribe-font-mono); text-transform:uppercase; letter-spacing:.05em; margin-bottom:8px;">Actions ouvertes</div>
+              <div id="stat-open-actions" style="font-size:28px; font-weight:800;">—</div>
+            </div>
+            <div class="card" style="padding:18px;">
+              <div style="font-size:11px; color:var(--scribe-text-faint); font-family:var(--scribe-font-mono); text-transform:uppercase; letter-spacing:.05em; margin-bottom:8px;">Actions terminées</div>
+              <div id="stat-done-actions" style="font-size:28px; font-weight:800;">—</div>
+            </div>
+            <div class="card" style="padding:18px;">
+              <div style="font-size:11px; color:var(--scribe-text-faint); font-family:var(--scribe-font-mono); text-transform:uppercase; letter-spacing:.05em; margin-bottom:8px;">Taux de complétion</div>
+              <div id="stat-completion-rate" style="font-size:28px; font-weight:800;">—</div>
+            </div>
+          </div>
+          
+          
+                    <button id="filter-toggle" class="ghost-btn" style="margin-bottom:16px;">Filtrer</button>
+
+          <div id="filters-bar" class="filters-bar" style="display:none; gap:12px; flex-wrap:wrap; margin-bottom:20px;">
             <input type="text" id="filter-theme" placeholder="Filtrer par thème..." style="padding:8px 12px; border:1px solid var(--scribe-border); border-radius:8px; flex:1; min-width:180px;">
             <input type="date" id="filter-date-from" style="padding:8px 12px; border:1px solid var(--scribe-border); border-radius:8px;">
             <input type="date" id="filter-date-to" style="padding:8px 12px; border:1px solid var(--scribe-border); border-radius:8px;">
