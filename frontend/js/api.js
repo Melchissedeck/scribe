@@ -5,7 +5,7 @@
 const PRODUCTION_API_BASE_URL = 'https://scribe-production-a094.up.railway.app';
 
 const API_BASE_URL = ['127.0.0.1', 'localhost'].includes(window.location.hostname)
-  ? 'http://127.0.0.1:8000'
+  ? 'https://127.0.0.1:8000'
   : PRODUCTION_API_BASE_URL;
 
 class ApiError extends Error {
@@ -80,10 +80,10 @@ export function getMeetingDetails(meetingId) {
   return apiRequest(`/meetings/${meetingId}/details`, { method: 'GET' });
 }
 
-export function startRecording(platform, nativeMeetingId, botName) {
+export function startRecording(platform, nativeMeetingId, botName, meetingUrl) {
   return apiRequest('/recording/start', {
     method: 'POST',
-    body: JSON.stringify({ platform, native_meeting_id: nativeMeetingId, bot_name: botName }),
+    body: JSON.stringify({ platform, native_meeting_id: nativeMeetingId, bot_name: botName, meeting_url: meetingUrl }),
   });
 }
 

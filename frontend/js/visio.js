@@ -72,7 +72,8 @@ function extractMeetingId(link) {
 startBtn.addEventListener('click', async () => {
   if (!selectedPlatform || !urlInput.value.trim()) return;
 
-  const meetingId = extractMeetingId(urlInput.value.trim());
+  const rawUrl = urlInput.value.trim();
+  const meetingId = extractMeetingId(rawUrl);
   if (!meetingId) {
     errorMsg.textContent = 'Lien de réunion invalide.';
     return;
@@ -83,7 +84,7 @@ startBtn.addEventListener('click', async () => {
   errorMsg.textContent = '';
 
   try {
-    const recording = await startRecording(selectedPlatform, meetingId, 'Scribe');
+    const recording = await startRecording(selectedPlatform, meetingId, 'Scribe', rawUrl);
     currentRecordingId = recording.id;
 
     platformBadge.textContent = PLATFORM_LABELS[selectedPlatform] ?? selectedPlatform;
