@@ -11,6 +11,7 @@ from app.exceptions import (
     InvalidCredentialsError,
     TokenExpiredError,
     VexaConnectionError,
+    VexaInvalidMeetingError,
 )
 from app.routes import (
     action_status,
@@ -81,14 +82,25 @@ def handle_invalid_credentials(
     )
 
 
+@app.exception_handler(VexaInvalidMeetingError)
+def handle_vexa_invalid_meeting(
+    request: Request,
+    exc: VexaInvalidMeetingError,
+) -> JSONResponse:
+    return JSONResponse(
+        status_code=422,
+        content={"detail": "Le lien de réunion est invalide ou inaccessible."},
+    )
+
+
 @app.exception_handler(VexaConnectionError)
 def handle_vexa_connection_error(
     request: Request,
     exc: VexaConnectionError,
 ) -> JSONResponse:
     return JSONResponse(
-        status_code=502,
-        content={"detail": exc.message},
+        status_code=503,
+        content={"detail": "Le service de réunion est temporairement indisponible. Veuillez réessayer dans quelques instants."},
     )
 
 

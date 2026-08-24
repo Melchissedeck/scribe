@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.dependencies import get_current_user
-from app.exceptions import VexaConnectionError
+from app.exceptions import VexaConnectionError, VexaInvalidMeetingError
 from app.models.recording import Recording
 from app.models.speaker import Speaker
 from app.models.transcript_segment import TranscriptSegment
@@ -145,8 +145,11 @@ def refresh_transcript(
         raise HTTPException(status_code=404, detail='Session introuvable')
 
     agent = VexaAgent()
-    raw_segments = agent.get_diarized_segments(recording.platform, recording.native_meeting_id)
-    recording.transcript = agent.get_transcript(recording.platform, recording.native_meeting_id)
+    try:
+        raw_segments = agent.get_diarized_segments(recording.platform, recording.native_meeting_id)
+        recording.transcript = agent.get_transcript(recording.platform, recording.native_meeting_id)
+    except VexaConnectionError as exc:
+        raise HTTPException(status_code=503, detail='La transcription est temporairement indisponible. Veuillez réessayer dans quelques instants.') from exc
     _save_diarized_segments(db, recording.id, raw_segments)
     db.commit()
     db.refresh(recording)
