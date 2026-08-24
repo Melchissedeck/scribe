@@ -1,4 +1,4 @@
-import { getMeetings, ApiError } from './api.js';
+import { getMeetings, getActions, ApiError } from './api.js';
 
 const meetingGrid = document.getElementById('meeting-grid');
 const emptyState = document.getElementById('empty-state');
@@ -8,6 +8,13 @@ const filterTheme = document.getElementById('filter-theme');
 const filterDateFrom = document.getElementById('filter-date-from');
 const filterDateTo = document.getElementById('filter-date-to');
 const filterReset = document.getElementById('filter-reset');
+
+const filterToggle = document.getElementById('filter-toggle');
+const filtersBar = document.getElementById('filters-bar');
+
+filterToggle.addEventListener('click', () => {
+  filtersBar.style.display = filtersBar.style.display === 'none' ? 'flex' : 'none';
+});
 
 if (!sessionStorage.getItem('access_token')) {
   window.location.href = 'login.html';
@@ -34,6 +41,7 @@ filterReset.addEventListener('click', () => {
 });
 
 loadMeetings();
+loadStats();
 
 async function loadMeetings() {
   emptyState.hidden = true;
@@ -118,4 +126,30 @@ function escape(str) {
   const div = document.createElement('div');
   div.textContent = str;
   return div.innerHTML;
+}
+
+async function loadStats() {
+  try {
+    const [meetings, allActions] = await Promise.all([
+      getMeetings(),
+      getActions(),
+    ]);
+
+    const totalMeetings = meetings.length;
+    const summariesCount = meetings.filter((m) => m.summary_excerpt).length;
+    const openActions = allActions.filter((a) => a.status === 'todo' || a.status === 'in_progress').length;
+    const doneActions = allActions.filter((a) => a.status === 'done').length;
+    const totalActions = allActions.length;
+    const completionRate = totalActions > 0 ? Math.round((doneActions / totalActions) * 100) : 0;
+
+    document.getElementById('stat-total-meetings').textContent = totalMeetings;
+    document.getElementById('stat-summaries').textContent = summariesCount;
+    document.getElementById('stat-open-actions').textContent = openActions;
+    document.getElementById('stat-done-actions').textContent = doneActions;
+    document.getElementById('stat-completion-rate').textContent = totalActions > 0 ? `${completionRate}%` : '—';
+  } catch (err) {
+    // Les stats sont un bonus visuel : en cas d'erreur, on laisse simplement les tirets
+    // sans bloquer le reste de la page (filtres et liste des réunions).
+    console.error('Impossible de charger les statistiques du dashboard.', err);
+  }
 }
