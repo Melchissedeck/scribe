@@ -74,8 +74,7 @@ def get_diarized_transcript(
     segments = (
         db.query(TranscriptSegment)
         .filter(TranscriptSegment.recording_id == meeting_id)
-        .join(TranscriptSegment.speaker)
-        .order_by(TranscriptSegment.start_time)
+        .order_by(TranscriptSegment.start)
         .all()
     )
 
@@ -88,7 +87,7 @@ def get_diarized_transcript(
     return DiarizedTranscriptResponse(
         meeting_id=meeting_id,
         segments=[
-            SegmentOut(speaker_name=seg.speaker.provisional_name, text=seg.text)
+            SegmentOut(speaker_name=seg.speaker, text=seg.text)
             for seg in segments
         ],
     )
