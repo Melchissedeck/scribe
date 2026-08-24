@@ -2,7 +2,7 @@
 
 // En local (127.0.0.1/localhost), on appelle le backend local. Sinon (site
 // deploye), on appelle le backend deploye sur Railway.
-const PRODUCTION_API_BASE_URL = 'https://scribe-backend.up.railway.app';
+const PRODUCTION_API_BASE_URL = 'https://scribe-production-a094.up.railway.app';
 
 const API_BASE_URL = ['127.0.0.1', 'localhost'].includes(window.location.hostname)
   ? 'http://127.0.0.1:8000'
