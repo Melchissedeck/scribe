@@ -2,14 +2,21 @@ from datetime import date, datetime, time
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.recording import Recording
 from app.models.user import User
 from app.models.transcript_segment import TranscriptSegment
-from app.schemas.recording import DiarizedTranscriptResponse, MeetingListItem, SegmentOut
+from app.schemas.action import ActionResponse
+from app.schemas.recording import (
+    DiarizedTranscriptResponse,
+    MeetingDetailResponse,
+    MeetingListItem,
+    SegmentOut,
+    SpeakerOut,
+)
 
 router = APIRouter(prefix='/meetings', tags=['meetings'])
 
@@ -90,4 +97,38 @@ def get_diarized_transcript(
             SegmentOut(speaker_name=seg.speaker, text=seg.text)
             for seg in segments
         ],
+    )
+
+
+@router.get('/{meeting_id}/details', response_model=MeetingDetailResponse)
+def get_meeting_details(
+    meeting_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    recording = (
+        db.query(Recording)
+        .filter(Recording.id == meeting_id, Recording.user_id == current_user.id)
+        .options(
+            selectinload(Recording.speakers),
+            selectinload(Recording.segments),
+            selectinload(Recording.actions),
+        )
+        .first()
+    )
+    if not recording:
+        raise HTTPException(status_code=404, detail='Réunion introuvable.')
+
+    segments = sorted(recording.segments, key=lambda seg: seg.start)
+
+    return MeetingDetailResponse(
+        id=recording.id,
+        theme=recording.theme,
+        status=recording.status,
+        started_at=recording.started_at,
+        stopped_at=recording.stopped_at,
+        summary=recording.summary,
+        speakers=[SpeakerOut.model_validate(speaker) for speaker in recording.speakers],
+        segments=[SegmentOut(speaker_name=seg.speaker, text=seg.text) for seg in segments],
+        actions=[ActionResponse.model_validate(action) for action in recording.actions],
     )
