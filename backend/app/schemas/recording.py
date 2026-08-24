@@ -3,6 +3,8 @@ from typing import Optional
 
 from pydantic import BaseModel
 
+from app.schemas.action import ActionResponse
+
 
 class RecordingCreate(BaseModel):
     platform: str
@@ -50,3 +52,23 @@ class SegmentOut(BaseModel):
 class DiarizedTranscriptResponse(BaseModel):
     meeting_id: int
     segments: list[SegmentOut]
+
+
+class SpeakerOut(BaseModel):
+    id: int
+    provisional_name: str
+    real_name: Optional[str] = None
+
+    model_config = {'from_attributes': True}
+
+
+class MeetingDetailResponse(BaseModel):
+    id: int
+    theme: Optional[str] = None
+    status: str
+    started_at: datetime
+    stopped_at: Optional[datetime] = None
+    summary: Optional[str] = None
+    speakers: list[SpeakerOut]
+    segments: list[SegmentOut]
+    actions: list[ActionResponse]
