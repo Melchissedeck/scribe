@@ -2,8 +2,12 @@ import os
 import subprocess
 import tempfile
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from app.config import settings
+
+if TYPE_CHECKING:
+    from fastapi import FastAPI
 
 # Windows : rendre les DLL FFmpeg visibles à torchcodec
 # avant d'importer pyannote.
@@ -111,3 +115,22 @@ class PyannoteService:
 
         finally:
             Path(wav_path).unlink(missing_ok=True)
+
+
+def get_pyannote_service(app: "FastAPI") -> PyannoteService:
+    """Retourne le PyannoteService de l'application, en le créant au besoin.
+
+    Le pipeline pyannote (torch + poids du modèle) n'est chargé qu'au
+    premier appel, pas au démarrage de l'application, pour ne pas
+    pénaliser le temps de démarrage ni la mémoire disponible pour les
+    autres routes tant que la diarisation dictaphone n'est pas utilisée.
+
+    Args:
+        app: Instance FastAPI, dont l'état porte la référence mise en cache.
+
+    Returns:
+        Le PyannoteService partagé par l'application.
+    """
+    if app.state.pyannote_service is None:
+        app.state.pyannote_service = PyannoteService()
+    return app.state.pyannote_service
