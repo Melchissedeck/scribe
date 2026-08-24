@@ -19,6 +19,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
+# Applique les migrations avant de demarrer : necessaire au premier
+# deploiement (base vide) et a chaque evolution du schema par la suite.
 # $PORT est fourni par la plateforme de deploiement (Railway) ; 8000 par
 # defaut pour un lancement en local (docker run sans -e PORT=...).
-CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
