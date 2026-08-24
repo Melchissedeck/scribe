@@ -1,10 +1,8 @@
 import re
 from datetime import date
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-
 
 from app.database import get_db
 from app.dependencies import get_current_user
@@ -89,7 +87,7 @@ def extract_actions(
     )
 
 
-def _match_speaker(responsable: Optional[str], speakers: list[Speaker]) -> Optional[Speaker]:
+def _match_speaker(responsable: str | None, speakers: list[Speaker]) -> Speaker | None:
     """Associe un nom de responsable à un Speaker existant de la réunion,
     par correspondance insensible à la casse sur le nom réel ou provisoire."""
     if not responsable:
@@ -108,7 +106,7 @@ def _match_speaker(responsable: Optional[str], speakers: list[Speaker]) -> Optio
 DATE_PATTERN = re.compile(r'^\d{4}-\d{2}-\d{2}$')
 
 
-def _parse_due_date(echeance: Optional[str]) -> Optional[date]:
+def _parse_due_date(echeance: str | None) -> date | None:
     """Tente de parser une échéance au format ISO (AAAA-MM-JJ).
     Retourne None si le texte n'est pas une date exploitable (ex: 'vendredi'),
     plutôt que de faire planter l'insertion en base."""

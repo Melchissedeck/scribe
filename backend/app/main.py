@@ -13,14 +13,14 @@ from app.exceptions import (
     VexaConnectionError,
 )
 from app.routes import (
-    auth,
-    recording,
-    dictaphone,
-    summary,
-    meetings,
-    users,
-    actions,
     action_status,
+    actions,
+    auth,
+    dictaphone,
+    meetings,
+    recording,
+    summary,
+    users,
 )
 from app.services.pyannote_service import PyannoteService
 

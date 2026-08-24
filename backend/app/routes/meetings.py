@@ -1,5 +1,4 @@
 from datetime import date, datetime, time
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session, selectinload
@@ -7,8 +6,8 @@ from sqlalchemy.orm import Session, selectinload
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.recording import Recording
-from app.models.user import User
 from app.models.transcript_segment import TranscriptSegment
+from app.models.user import User
 from app.schemas.action import ActionResponse
 from app.schemas.recording import (
     DiarizedTranscriptResponse,
@@ -33,9 +32,9 @@ def _build_excerpt(summary: str | None) -> str | None:
 
 @router.get('', response_model=list[MeetingListItem])
 def list_meetings(
-    theme: Optional[str] = Query(default=None, description="Filtre sur le thème (recherche partielle, insensible à la casse)"),
-    date_from: Optional[date] = Query(default=None, description="Réunions à partir de cette date (incluse)"),
-    date_to: Optional[date] = Query(default=None, description="Réunions jusqu'à cette date (incluse)"),
+    theme: str | None = Query(default=None, description="Filtre sur le thème (recherche partielle, insensible à la casse)"),
+    date_from: date | None = Query(default=None, description="Réunions à partir de cette date (incluse)"),
+    date_to: date | None = Query(default=None, description="Réunions jusqu'à cette date (incluse)"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
