@@ -82,16 +82,12 @@ def start_recording(
     current_user: User = Depends(get_current_user),
 ):
     agent = VexaAgent()
-<<<<<<< Updated upstream
-    agent.send_bot(payload.platform, payload.native_meeting_id, payload.bot_name)
-=======
     try:
         agent.send_bot(payload.platform, payload.native_meeting_id, payload.bot_name, payload.meeting_url)
     except VexaInvalidMeetingError as exc:
         raise HTTPException(status_code=422, detail='Le lien de réunion est invalide ou inaccessible.') from exc
     except VexaConnectionError as exc:
         raise HTTPException(status_code=503, detail='Le service de réunion est temporairement indisponible. Veuillez réessayer dans quelques instants.') from exc
->>>>>>> Stashed changes
 
     recording = Recording(
         user_id=current_user.id,
