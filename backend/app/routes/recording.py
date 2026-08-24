@@ -82,7 +82,7 @@ def start_recording(
     current_user: User = Depends(get_current_user),
 ):
     agent = VexaAgent()
-    agent.send_bot(payload.platform, payload.native_meeting_id, payload.bot_name)
+    agent.send_bot(payload.platform, payload.native_meeting_id, payload.bot_name, payload.meeting_url)
 
     recording = Recording(
         user_id=current_user.id,
