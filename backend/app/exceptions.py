@@ -14,6 +14,13 @@ class InvalidCredentialsError(Exception):
 
 class VexaConnectionError(Exception):
     # Levee quand l'API Vexa est inaccessible (timeout, coupure réseau, HTTP error)
-    def __init__(self, message: str = 'Impossible de joindre le service Vexa. Veuillez réessayer.'):
+    def __init__(self, message: str = 'Le service de réunion est temporairement indisponible. Veuillez réessayer dans quelques instants.'):
+        self.message = message
+        super().__init__(message)
+
+
+class VexaInvalidMeetingError(Exception):
+    # Levee quand Vexa rejette le lien de réunion (lien invalide ou inaccessible)
+    def __init__(self, message: str = 'Le lien de réunion est invalide ou inaccessible.'):
         self.message = message
         super().__init__(message)

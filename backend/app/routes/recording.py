@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.dependencies import get_current_user
-from app.exceptions import VexaConnectionError
+from app.exceptions import VexaConnectionError, VexaInvalidMeetingError
 from app.models.recording import Recording
 from app.models.speaker import Speaker
 from app.models.transcript_segment import TranscriptSegment
@@ -82,7 +82,16 @@ def start_recording(
     current_user: User = Depends(get_current_user),
 ):
     agent = VexaAgent()
+<<<<<<< Updated upstream
     agent.send_bot(payload.platform, payload.native_meeting_id, payload.bot_name)
+=======
+    try:
+        agent.send_bot(payload.platform, payload.native_meeting_id, payload.bot_name, payload.meeting_url)
+    except VexaInvalidMeetingError as exc:
+        raise HTTPException(status_code=422, detail='Le lien de réunion est invalide ou inaccessible.') from exc
+    except VexaConnectionError as exc:
+        raise HTTPException(status_code=503, detail='Le service de réunion est temporairement indisponible. Veuillez réessayer dans quelques instants.') from exc
+>>>>>>> Stashed changes
 
     recording = Recording(
         user_id=current_user.id,
@@ -145,8 +154,11 @@ def refresh_transcript(
         raise HTTPException(status_code=404, detail='Session introuvable')
 
     agent = VexaAgent()
-    raw_segments = agent.get_diarized_segments(recording.platform, recording.native_meeting_id)
-    recording.transcript = agent.get_transcript(recording.platform, recording.native_meeting_id)
+    try:
+        raw_segments = agent.get_diarized_segments(recording.platform, recording.native_meeting_id)
+        recording.transcript = agent.get_transcript(recording.platform, recording.native_meeting_id)
+    except VexaConnectionError as exc:
+        raise HTTPException(status_code=503, detail='La transcription est temporairement indisponible. Veuillez réessayer dans quelques instants.') from exc
     _save_diarized_segments(db, recording.id, raw_segments)
     db.commit()
     db.refresh(recording)
