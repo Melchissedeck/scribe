@@ -1,5 +1,5 @@
 import { requireConsent } from './consent.js';
-import { startRecording, stopRecording, refreshTranscript, ApiError } from './api.js';
+import { startRecording, stopRecording, refreshTranscript, getSpeakingTime, ApiError } from './api.js';
 
 requireConsent();
 
@@ -22,8 +22,10 @@ const statusLabel    = document.getElementById('status-label');
 const platformBadge  = document.getElementById('platform-badge');
 const meetingIdDisp  = document.getElementById('meeting-id-display');
 const transcriptEl   = document.getElementById('transcript-content');
-const finalTranscript= document.getElementById('final-transcript');
-const sessionError   = document.getElementById('session-error');
+const finalTranscript      = document.getElementById('final-transcript');
+const speakingTimeSection  = document.getElementById('speaking-time-section');
+const speakingTimeList     = document.getElementById('speaking-time-list');
+const sessionError         = document.getElementById('session-error');
 const stopBtn        = document.getElementById('stop-button');
 const elapsedEl      = document.getElementById('elapsed-time');
 
@@ -116,6 +118,7 @@ stopBtn.addEventListener('click', async () => {
     statusLabel.textContent = 'Session arrêtée';
 
     finalTranscript.textContent = recording.transcript || '(Aucune transcription disponible)';
+    loadSpeakingTime(currentRecordingId);
     showPanel(donePanel);
   } catch (err) {
     sessionError.textContent = err instanceof ApiError ? err.message : "Erreur lors de l'arrêt.";
@@ -125,6 +128,32 @@ stopBtn.addEventListener('click', async () => {
     startElapsedTimer();
   }
 });
+
+// ── Speaking time ─────────────────────────────────────────────────────────
+async function loadSpeakingTime(recordingId) {
+  try {
+    const data = await getSpeakingTime(recordingId);
+    if (!data.entries || data.entries.length === 0) return;
+    speakingTimeList.innerHTML = data.entries.map((e) => {
+      const mins = Math.floor(e.seconds / 60);
+      const secs = Math.round(e.seconds % 60);
+      const label = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+      return `
+        <div class="speaking-time-entry">
+          <div class="speaking-time-meta">
+            <span class="speaking-time-name">${e.speaker}</span>
+            <span class="speaking-time-value">${label} · ${e.percentage}%</span>
+          </div>
+          <div class="speaking-time-bar-track">
+            <div class="speaking-time-bar" style="width: ${e.percentage}%"></div>
+          </div>
+        </div>`;
+    }).join('');
+    speakingTimeSection.classList.remove('visio-hidden');
+  } catch (_) {
+    // silently skip if stats unavailable
+  }
+}
 
 // ── Polling transcript ────────────────────────────────────────────────────
 function startPolling() {
