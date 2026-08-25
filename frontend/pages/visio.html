@@ -69,6 +69,21 @@
         <p class="visio-deploy-hint" id="deploy-hint">
           Sélectionnez une plateforme et collez le lien de la réunion pour continuer.
         </p>
+
+        <div id="fallback-section" class="fallback-section visio-hidden">
+          <div class="fallback-divider"><span>ou</span></div>
+          <div class="mono-label" style="margin-bottom: 10px;">IMPORTER UN ENREGISTREMENT AUDIO</div>
+          <p class="fallback-hint">Le service de visio est indisponible. Importez un fichier audio à la place.</p>
+          <label class="file-label" for="audio-file-input">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <span id="file-label-text">Choisir un fichier audio</span>
+            <input type="file" id="audio-file-input" accept=".mp3,.wav,.m4a,.webm,.ogg" style="display:none">
+          </label>
+          <button class="button-primary" id="upload-button" disabled style="width: 100%; margin-top: 10px;">
+            Transcrire le fichier
+          </button>
+          <p class="error-message" id="upload-error"></p>
+        </div>
       </div>
 
       <!-- Session en cours -->
@@ -122,7 +137,7 @@
         </div>
 
         <div class="flow-actions">
-          <a href="mode-selection.html" class="button-secondary" style="text-align:center;">Nouvelle session</a>
+          <a id="detail-link" href="#" class="button-secondary" style="text-align:center;">Voir le compte rendu</a>
           <a href="accueil.html" class="button-primary flow-flex" style="text-align:center;">Tableau de bord</a>
         </div>
       </div>
