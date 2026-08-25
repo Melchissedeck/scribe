@@ -5,7 +5,7 @@
 const PRODUCTION_API_BASE_URL = 'https://scribe-production-a094.up.railway.app';
 
 const API_BASE_URL = ['127.0.0.1', 'localhost'].includes(window.location.hostname)
-  ? 'https://127.0.0.1:8000'
+  ? 'http://127.0.0.1:8000'
   : PRODUCTION_API_BASE_URL;
 
 class ApiError extends Error {
