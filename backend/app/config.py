@@ -17,7 +17,7 @@ class Settings:
         "change-me-in-production",
     )
     jwt_algorithm: str = "HS256"
-    jwt_expiration_minutes: int = 60
+    jwt_expiration_minutes: int = 480
     allowed_origin: str = os.getenv(
         "ALLOWED_ORIGIN",
         "https://127.0.0.1:5500",

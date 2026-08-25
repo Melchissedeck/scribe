@@ -168,6 +168,6 @@ def get_meeting_details(
         stopped_at=recording.stopped_at,
         summary=recording.summary,
         speakers=[SpeakerOut.model_validate(speaker) for speaker in recording.speakers],
-        segments=[SegmentOut(speaker_name=seg.speaker, text=seg.text) for seg in segments],
+        segments=[SegmentOut(speaker_name=seg.speaker, text=seg.text, start=seg.start) for seg in segments],
         actions=[ActionResponse.model_validate(action) for action in recording.actions],
     )

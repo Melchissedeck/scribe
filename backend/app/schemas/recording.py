@@ -45,6 +45,7 @@ class MeetingListItem(BaseModel):
 class SegmentOut(BaseModel):
     speaker_name: str
     text: str
+    start: float | None = None
 
     model_config = {'from_attributes': True}
 
