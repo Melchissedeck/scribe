@@ -1,10 +1,10 @@
 import logging
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.database import get_db
+from app.database import SessionLocal, get_db
 from app.dependencies import get_current_user
 from app.exceptions import VexaConnectionError, VexaInvalidMeetingError
 from app.models.recording import Recording
@@ -20,18 +20,28 @@ router = APIRouter(prefix='/recording', tags=['recording'])
 
 
 def _deduplicate_segments(raw_segments: list[dict]) -> list[dict]:
-    """Supprime les segments consécutifs identiques (même speaker, même texte).
+    """Supprime les segments redondants.
 
-    Vexa retourne un transcript cumulatif : chaque appel inclut tous les segments
-    depuis le début, ce qui produit des doublons quand on poll plusieurs fois.
+    Vexa retourne un transcript cumulatif et peut renvoyer le même contenu
+    d'abord sous forme d'un grand bloc, puis redécoupé en petits segments.
+    On filtre : doublons exacts consécutifs ET segments dont le texte est
+    un sous-ensemble d'un segment existant du même locuteur.
     """
     clean: list[dict] = []
     for seg in raw_segments:
         text = seg.get('text', '').strip()
         if not text:
             continue
+        speaker = seg.get('speaker')
+        # Doublon consécutif exact
         last = clean[-1] if clean else None
-        if last and last.get('speaker') == seg.get('speaker') and last.get('text', '').strip() == text:
+        if last and last.get('speaker') == speaker and last.get('text', '').strip() == text:
+            continue
+        # Texte déjà contenu dans un segment existant du même locuteur
+        if any(
+            s.get('speaker') == speaker and text in s.get('text', '').strip()
+            for s in clean
+        ):
             continue
         clean.append(seg)
     return clean
@@ -97,9 +107,29 @@ def start_recording(
     return recording
 
 
+def _fetch_final_transcript(recording_id: int, platform: str, native_meeting_id: str) -> None:
+    db = SessionLocal()
+    try:
+        agent = VexaAgent()
+        raw_segments = agent.get_diarized_segments(platform, native_meeting_id)
+        transcript = agent.get_transcript(platform, native_meeting_id)
+        recording = db.query(Recording).filter(Recording.id == recording_id).first()
+        if recording:
+            recording.transcript = transcript
+            _save_diarized_segments(db, recording_id, raw_segments)
+            db.commit()
+    except VexaConnectionError:
+        logger.warning('Transcription Vexa indisponible pour la session %s', recording_id)
+    except Exception as exc:
+        logger.error('Erreur inattendue lors de la récupération finale de la transcription: %s', exc)
+    finally:
+        db.close()
+
+
 @router.post('/{recording_id}/stop', response_model=RecordingRead)
 def stop_recording(
     recording_id: int,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -115,19 +145,18 @@ def stop_recording(
     agent = VexaAgent()
     agent.stop_bot(recording.platform, recording.native_meeting_id)
 
-    try:
-        raw_segments = agent.get_diarized_segments(recording.platform, recording.native_meeting_id)
-        recording.transcript = agent.get_transcript(recording.platform, recording.native_meeting_id)
-        _save_diarized_segments(db, recording.id, raw_segments)
-    except VexaConnectionError:
-        logger.warning('Transcription Vexa indisponible pour la session %s', recording_id)
-    except Exception as exc:
-        logger.error('Erreur inattendue lors de la récupération de la transcription: %s', exc)
-
     recording.status = 'stopped'
     recording.stopped_at = datetime.utcnow()
     db.commit()
     db.refresh(recording)
+
+    background_tasks.add_task(
+        _fetch_final_transcript,
+        recording.id,
+        recording.platform,
+        recording.native_meeting_id,
+    )
+
     return recording
 
 
