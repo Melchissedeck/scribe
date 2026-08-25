@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -12,6 +12,7 @@ from app.models.speaker import Speaker
 from app.models.transcript_segment import TranscriptSegment
 from app.models.user import User
 from app.schemas.recording import RecordingCreate, RecordingRead
+from app.services.llm_service import LLMService
 from vexa_agent import VexaAgent
 
 logger = logging.getLogger(__name__)
@@ -97,9 +98,19 @@ def start_recording(
     return recording
 
 
+def _generate_summary_background(recording_id: int, transcript: str, db: Session) -> None:
+    try:
+        summary = LLMService().generate_summary(transcript)
+        db.query(Recording).filter(Recording.id == recording_id).update({'summary': summary})
+        db.commit()
+    except Exception as exc:
+        logger.error('Erreur lors de la génération du résumé pour la session %s: %s', recording_id, exc)
+
+
 @router.post('/{recording_id}/stop', response_model=RecordingRead)
 def stop_recording(
     recording_id: int,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -123,6 +134,9 @@ def stop_recording(
         logger.warning('Transcription Vexa indisponible pour la session %s', recording_id)
     except Exception as exc:
         logger.error('Erreur inattendue lors de la récupération de la transcription: %s', exc)
+
+    if recording.transcript and recording.transcript.strip():
+        background_tasks.add_task(_generate_summary_background, recording.id, recording.transcript, db)
 
     recording.status = 'stopped'
     recording.stopped_at = datetime.utcnow()
