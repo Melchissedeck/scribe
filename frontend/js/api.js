@@ -119,4 +119,28 @@ export function updateActionStatus(actionId, status) {
   });
 }
 
+export function createDictaphoneRecording() {
+  return apiRequest('/meetings', { method: 'POST' });
+}
+
+export async function uploadAudioFile(recordingId, file) {
+  const token = sessionStorage.getItem('access_token');
+  const formData = new FormData();
+  formData.append('audio', file, file.name);
+  const response = await fetch(`${API_BASE_URL}/meetings/${recordingId}/upload-audio`, {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: formData,
+  });
+  const data = await response.json().catch(() => null);
+  if (!response.ok) {
+    throw new ApiError(data?.detail ?? 'Une erreur est survenue', response.status);
+  }
+  return data;
+}
+
+export function transcribeRecording(recordingId) {
+  return apiRequest(`/meetings/${recordingId}/transcribe`, { method: 'POST' });
+}
+
 export { ApiError };
