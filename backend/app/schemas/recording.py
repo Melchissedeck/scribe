@@ -63,6 +63,17 @@ class SpeakerOut(BaseModel):
     model_config = {'from_attributes': True}
 
 
+class SpeakingTimeEntry(BaseModel):
+    speaker: str
+    seconds: float
+    percentage: float
+
+
+class SpeakingTimeResponse(BaseModel):
+    meeting_id: int
+    entries: list[SpeakingTimeEntry]
+
+
 class MeetingDetailResponse(BaseModel):
     id: int
     theme: str | None = None

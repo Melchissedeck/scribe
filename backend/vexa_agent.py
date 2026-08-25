@@ -50,16 +50,8 @@ class VexaAgent:
         else:
             payload = {'platform': platform, 'native_meeting_id': meeting_id, 'bot_name': bot_name}
         try:
-<<<<<<< Updated upstream
-            response = requests.post(
-                f'{self.base_url}/bots',
-                headers=self.headers,
-                json=payload,
-                timeout=_TIMEOUT,
-=======
             response = _http_call_with_retry(
                 lambda: requests.post(f'{self.base_url}/bots', headers=self.headers, json=payload, timeout=_TIMEOUT)
->>>>>>> Stashed changes
             )
             response.raise_for_status()
             return response.json()

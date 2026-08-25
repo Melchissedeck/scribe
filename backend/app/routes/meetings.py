@@ -15,6 +15,8 @@ from app.schemas.recording import (
     MeetingListItem,
     SegmentOut,
     SpeakerOut,
+    SpeakingTimeEntry,
+    SpeakingTimeResponse,
 )
 
 router = APIRouter(prefix='/meetings', tags=['meetings'])
@@ -61,6 +63,44 @@ def list_meetings(
         )
         for recording in recordings
     ]
+
+
+@router.get('/{meeting_id}/speaking-time', response_model=SpeakingTimeResponse)
+def get_speaking_time(
+    meeting_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    recording = db.query(Recording).filter(
+        Recording.id == meeting_id, Recording.user_id == current_user.id
+    ).first()
+    if not recording:
+        raise HTTPException(status_code=404, detail='Réunion introuvable.')
+
+    segments = db.query(TranscriptSegment).filter(
+        TranscriptSegment.recording_id == meeting_id
+    ).all()
+
+    durations: dict[str, float] = {}
+    for seg in segments:
+        duration = max(0.0, seg.end - seg.start)
+        durations[seg.speaker] = durations.get(seg.speaker, 0.0) + duration
+
+    total = sum(durations.values())
+
+    if total == 0:
+        return SpeakingTimeResponse(meeting_id=meeting_id, entries=[])
+
+    entries = [
+        SpeakingTimeEntry(
+            speaker=speaker,
+            seconds=round(seconds, 1),
+            percentage=round(seconds / total * 100, 1),
+        )
+        for speaker, seconds in sorted(durations.items(), key=lambda x: -x[1])
+    ]
+
+    return SpeakingTimeResponse(meeting_id=meeting_id, entries=entries)
 
 
 @router.get('/{meeting_id}/diarized-transcript', response_model=DiarizedTranscriptResponse)
