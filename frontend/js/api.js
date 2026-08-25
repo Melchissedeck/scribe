@@ -76,6 +76,10 @@ export function getDiarizedTranscript(meetingId) {
   return apiRequest(`/meetings/${meetingId}/diarized-transcript`, { method: 'GET' });
 }
 
+export function getSpeakingTime(meetingId) {
+  return apiRequest(`/meetings/${meetingId}/speaking-time`, { method: 'GET' });
+}
+
 export function getMeetingDetails(meetingId) {
   return apiRequest(`/meetings/${meetingId}/details`, { method: 'GET' });
 }
