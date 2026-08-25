@@ -1,5 +1,9 @@
 import { requireConsent } from './consent.js';
-import { startRecording, stopRecording, refreshTranscript, ApiError } from './api.js';
+import {
+  startRecording, stopRecording, refreshTranscript,
+  createDictaphoneRecording, uploadAudioFile, transcribeRecording,
+  ApiError,
+} from './api.js';
 
 requireConsent();
 
@@ -22,8 +26,14 @@ const statusLabel    = document.getElementById('status-label');
 const platformBadge  = document.getElementById('platform-badge');
 const meetingIdDisp  = document.getElementById('meeting-id-display');
 const transcriptEl   = document.getElementById('transcript-content');
-const finalTranscript= document.getElementById('final-transcript');
-const sessionError   = document.getElementById('session-error');
+const finalTranscript  = document.getElementById('final-transcript');
+const detailLink       = document.getElementById('detail-link');
+const sessionError     = document.getElementById('session-error');
+const fallbackSection  = document.getElementById('fallback-section');
+const audioFileInput   = document.getElementById('audio-file-input');
+const fileLabelText    = document.getElementById('file-label-text');
+const uploadBtn        = document.getElementById('upload-button');
+const uploadError      = document.getElementById('upload-error');
 const stopBtn        = document.getElementById('stop-button');
 const elapsedEl      = document.getElementById('elapsed-time');
 
@@ -97,6 +107,9 @@ startBtn.addEventListener('click', async () => {
     errorMsg.textContent = err instanceof ApiError ? err.message : 'Impossible de lancer la session.';
     startBtn.disabled = false;
     startBtn.textContent = "Déployer l'agent";
+    if (!(err instanceof ApiError && err.status === 422)) {
+      fallbackSection.classList.remove('visio-hidden');
+    }
   }
 });
 
@@ -116,6 +129,7 @@ stopBtn.addEventListener('click', async () => {
     statusLabel.textContent = 'Session arrêtée';
 
     finalTranscript.textContent = recording.transcript || '(Aucune transcription disponible)';
+    detailLink.href = `meeting-detail.html?id=${currentRecordingId}`;
     showPanel(donePanel);
   } catch (err) {
     sessionError.textContent = err instanceof ApiError ? err.message : "Erreur lors de l'arrêt.";
@@ -151,6 +165,36 @@ function startElapsedTimer() {
     elapsedEl.textContent = `${m}:${s}`;
   }, 1000);
 }
+
+// ── Fallback audio upload ─────────────────────────────────────────────────
+audioFileInput.addEventListener('change', () => {
+  const file = audioFileInput.files[0];
+  fileLabelText.textContent = file ? file.name : 'Choisir un fichier audio';
+  uploadBtn.disabled = !file;
+});
+
+uploadBtn.addEventListener('click', async () => {
+  const file = audioFileInput.files[0];
+  if (!file) return;
+
+  uploadBtn.disabled = true;
+  uploadBtn.textContent = 'Envoi en cours…';
+  uploadError.textContent = '';
+
+  try {
+    const { recording_id } = await createDictaphoneRecording();
+    await uploadAudioFile(recording_id, file);
+    uploadBtn.textContent = 'Transcription en cours…';
+    const result = await transcribeRecording(recording_id);
+    finalTranscript.textContent = result.transcript || '(Aucune transcription disponible)';
+    detailLink.href = `meeting-detail.html?id=${recording_id}`;
+    showPanel(donePanel);
+  } catch (err) {
+    uploadError.textContent = err instanceof ApiError ? err.message : "Erreur lors de l'upload.";
+    uploadBtn.disabled = false;
+    uploadBtn.textContent = 'Transcrire le fichier';
+  }
+});
 
 // ── Panel switching ───────────────────────────────────────────────────────
 function showPanel(panel) {
