@@ -1,5 +1,6 @@
 import os
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -9,9 +10,12 @@ from app.config import settings
 if TYPE_CHECKING:
     from fastapi import FastAPI
 
-# Windows : rendre les DLL FFmpeg visibles à torchcodec
-# avant d'importer pyannote.
-if os.name == "nt":
+# Windows : rendre les DLL FFmpeg visibles à torchcodec avant d'importer
+# pyannote. sys.platform (plutot que os.name) : mypy reconnait cette forme
+# specifiquement et exclut la branche de l'analyse sur les autres OS, ce qui
+# evite une erreur "os.add_dll_directory n'existe pas" quand mypy tourne sur
+# Linux (CI) tout en restant verifie normalement sous Windows.
+if sys.platform == "win32":
     if settings.ffmpeg_bin:
         ffmpeg_bin = Path(settings.ffmpeg_bin)
 
