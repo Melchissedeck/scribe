@@ -45,5 +45,10 @@ class Settings:
         "",
     )
 
+    sentry_dsn: str = os.getenv(
+        "SENTRY_DSN",
+        "",
+    )
+
 
 settings = Settings()
