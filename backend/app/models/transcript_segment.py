@@ -23,6 +23,10 @@ class TranscriptSegment(Base):
 
     speaker = Column(String(100), nullable=False)
 
+    tone = Column(String(50), nullable=True)
+    theme = Column(String(100), nullable=True)
+    urgency = Column(String(20), nullable=True)
+
     recording = relationship(
         "Recording",
         back_populates="segments",
