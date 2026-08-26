@@ -116,6 +116,14 @@
   letter-spacing: -0.03em;
   color: var(--color-text);
   margin: 0 0 6px;
+  border-radius: 6px;
+  cursor: text;
+}
+
+.cr-title:hover,
+.cr-title:focus {
+  outline: 1px dashed var(--scribe-border);
+  outline-offset: 4px;
 }
 
 .cr-meta {

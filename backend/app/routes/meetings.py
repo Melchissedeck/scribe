@@ -17,6 +17,8 @@ from app.schemas.recording import (
     SpeakerOut,
     SpeakingTimeEntry,
     SpeakingTimeResponse,
+    ThemeResponse,
+    ThemeUpdate,
 )
 
 router = APIRouter(prefix='/meetings', tags=['meetings'])
@@ -60,9 +62,34 @@ def list_meetings(
             date=recording.started_at,
             status=recording.status,
             summary_excerpt=_build_excerpt(recording.summary),
+            duration_minutes=(
+                (recording.stopped_at - recording.started_at).total_seconds() / 60
+                if recording.stopped_at
+                else None
+            ),
         )
         for recording in recordings
     ]
+
+
+@router.patch('/{meeting_id}/theme', response_model=ThemeResponse)
+def update_meeting_theme(
+    meeting_id: int,
+    payload: ThemeUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    recording = db.query(Recording).filter(
+        Recording.id == meeting_id, Recording.user_id == current_user.id
+    ).first()
+    if not recording:
+        raise HTTPException(status_code=404, detail='Réunion introuvable.')
+
+    recording.theme = payload.theme.strip() if payload.theme and payload.theme.strip() else None
+    db.commit()
+    db.refresh(recording)
+
+    return ThemeResponse(recording_id=recording.id, theme=recording.theme)
 
 
 @router.get('/{meeting_id}/speaking-time', response_model=SpeakingTimeResponse)

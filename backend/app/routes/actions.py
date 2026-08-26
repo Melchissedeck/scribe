@@ -49,6 +49,9 @@ def extract_actions(
             detail="Le service de génération du compte-rendu structuré est momentanément indisponible.",
         )
 
+    if not recording.theme and structured.themes:
+        recording.theme = structured.themes[0].strip() or None
+
     speakers = db.query(Speaker).filter(Speaker.recording_id == recording.id).all()
 
     created_actions = []
@@ -74,6 +77,7 @@ def extract_actions(
     return ExtractActionsResponse(
         recording_id=recording.id,
         actions_count=len(created_actions),
+        theme=recording.theme,
         actions=[
             ActionResponse(
                 id=a.id,

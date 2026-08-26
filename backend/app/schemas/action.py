@@ -18,6 +18,7 @@ class ExtractActionsResponse(BaseModel):
     recording_id: int
     actions_count: int
     actions: list[ActionResponse]
+    theme: str | None = None
 
 class ActionStatusUpdate(BaseModel):
     status: Literal['todo', 'in_progress', 'done']    

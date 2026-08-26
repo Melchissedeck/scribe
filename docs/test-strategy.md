@@ -101,8 +101,9 @@ la plus rapide à tester et la plus rentable) :
 1. `_deduplicate_segments`, `_match_speaker`, `_parse_due_date`,
    `SpeakerAssignmentService.assign_speakers` — fonctions pures, aucun mock
    nécessaire.
-2. `LLMService._parse_structured_response` — parsing et validation du JSON,
-   testable avec des chaînes de test sans appeler l'API TogetherAI.
+2. `LLMService.generate_summary` / `generate_structured_summary` — construction
+   du prompt et gestion des erreurs, testables avec un client Anthropic mocké
+   sans appeler l'API réelle.
 3. `get_current_user` — chemins d'erreur (token expiré, invalide, utilisateur
    supprimé).
 4. Les flux complets visio et dictaphone (`VexaAgent`, routes

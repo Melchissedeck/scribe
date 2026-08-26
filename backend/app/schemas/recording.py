@@ -32,12 +32,22 @@ class SummaryResponse(BaseModel):
     summary: str
 
 
+class ThemeUpdate(BaseModel):
+    theme: str | None = None
+
+
+class ThemeResponse(BaseModel):
+    recording_id: int
+    theme: str | None = None
+
+
 class MeetingListItem(BaseModel):
     id: int
     theme: str | None = None
     date: datetime
     status: str
     summary_excerpt: str | None = None
+    duration_minutes: float | None = None
 
     model_config = {'from_attributes': True}
 

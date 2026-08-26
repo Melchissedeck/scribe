@@ -79,9 +79,6 @@ function renderMeetings(meetings) {
       window.location.href = `meeting-detail.html?id=${meeting.id}`;
     });
 
-    const status = meeting.status === 'stopped' ? 'badge-done' : 'badge-active';
-    const statusLabel = meeting.status === 'stopped' ? 'TERMINÉ' : 'EN COURS';
-
     card.innerHTML = `
       <div class="session-top">
         <div class="session-icon">
@@ -96,7 +93,6 @@ function renderMeetings(meetings) {
           <div class="session-title">${escape(meeting.theme || 'Réunion sans titre')}</div>
           <div class="session-date">${formatDate(meeting.date)}</div>
         </div>
-        <span class="badge ${status}">${statusLabel}</span>
       </div>
       <p class="session-desc">${escape(meeting.summary_excerpt || 'Compte-rendu non encore disponible.')}</p>
       <div class="session-footer">
@@ -142,11 +138,24 @@ async function loadStats() {
     const totalActions = allActions.length;
     const completionRate = totalActions > 0 ? Math.round((doneActions / totalActions) * 100) : 0;
 
+    const totalMinutes = meetings.reduce((sum, m) => sum + (m.duration_minutes || 0), 0);
+    const hoursAnalyzed = (totalMinutes / 60).toFixed(1);
+
     document.getElementById('stat-total-meetings').textContent = totalMeetings;
     document.getElementById('stat-summaries').textContent = summariesCount;
     document.getElementById('stat-open-actions').textContent = openActions;
     document.getElementById('stat-done-actions').textContent = doneActions;
     document.getElementById('stat-completion-rate').textContent = totalActions > 0 ? `${completionRate}%` : '—';
+
+    document.getElementById('kpi-total-meetings').textContent = totalMeetings;
+    document.getElementById('kpi-hours-analyzed').textContent = totalMinutes > 0 ? hoursAnalyzed : '—';
+    document.getElementById('kpi-total-actions').textContent = totalActions;
+
+    const summariesCoverage = totalMeetings > 0 ? Math.round((summariesCount / totalMeetings) * 100) : 0;
+    document.getElementById('stat-summaries-trend').textContent = totalMeetings > 0 ? `${summariesCoverage}% couverts` : '';
+    document.getElementById('stat-done-actions-trend').textContent = totalActions > 0 ? `sur ${totalActions} au total` : '';
+    document.getElementById('stat-completion-ratio').textContent = totalActions > 0 ? `${doneActions} / ${totalActions} actions` : '';
+    document.getElementById('stat-completion-bar').style.width = `${completionRate}%`;
   } catch (err) {
     // Les stats sont un bonus visuel : en cas d'erreur, on laisse simplement les tirets
     // sans bloquer le reste de la page (filtres et liste des réunions).

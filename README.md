@@ -9,7 +9,7 @@ Assistant de réunion intelligent : captation, transcription, compte-rendu et su
 - Backend : FastAPI, PostgreSQL, SQLAlchemy
 - Frontend : HTML, CSS, JavaScript (sans framework)
 - Transcription : Whisper + pyannote (dictaphone), Vexa (visio)
-- Génération de compte-rendu : Qwen3.7-Plus via TogetherAI
+- Génération de compte-rendu : Claude Sonnet via l'API Anthropic
 
 ## Installation
 
@@ -47,7 +47,7 @@ Trois services Railway dans le même projet :
    Les migrations Alembic s'appliquent automatiquement à chaque démarrage du
    conteneur. Variables d'environnement : `DATABASE_URL` (référence vers le
    plugin Postgres), `JWT_SECRET_KEY`, `ALLOWED_ORIGIN` (URL du frontend),
-   `VEXA_API_KEY`, `TOGETHER_API_KEY`, `TOGETHER_MODEL`, `GROQ_API_KEY`,
+   `VEXA_API_KEY`, `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL`, `GROQ_API_KEY`,
    `PYANNOTE_AUTH_TOKEN`, `ADMIN_API_KEY`, `SENTRY_DSN` (optionnelle).
 3. **Frontend** — *Root Directory* `frontend/`, build via
    `frontend/Dockerfile`. `frontend/js/api.js` bascule automatiquement entre

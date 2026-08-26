@@ -41,9 +41,6 @@ function renderMeetings(meetings) {
       window.location.href = `meeting-detail.html?id=${meeting.id}`;
     });
 
-    const status = meeting.status === 'stopped' ? 'badge-done' : 'badge-active';
-    const statusLabel = meeting.status === 'stopped' ? 'TERMINÉ' : 'EN COURS';
-
     card.innerHTML = `
       <div class="session-top">
         <div class="session-icon">
@@ -58,7 +55,6 @@ function renderMeetings(meetings) {
           <div class="session-title">${escape(meeting.theme || 'Réunion sans titre')}</div>
           <div class="session-date">${formatDate(meeting.date)}</div>
         </div>
-        <span class="badge ${status}">${statusLabel}</span>
       </div>
       <p class="session-desc">${escape(meeting.summary_excerpt || 'Compte-rendu non encore disponible.')}</p>
       <div class="session-footer">

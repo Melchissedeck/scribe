@@ -1,4 +1,7 @@
-import { getMeetingDetails, getSpeakingTime, generateSummary, updateActionStatus, ApiError } from './api.js';
+import {
+  getMeetingDetails, getSpeakingTime, generateSummary, extractActions,
+  updateMeetingTheme, updateActionStatus, ApiError,
+} from './api.js';
 
 if (!sessionStorage.getItem('access_token')) {
   window.location.href = 'login.html';
@@ -19,6 +22,7 @@ const STATUS_LABELS = {
   done: 'Terminé',
 };
 
+const titleEl         = document.getElementById('cr-title');
 const metaEl          = document.getElementById('cr-meta');
 const summaryEl       = document.getElementById('cr-summary');
 const speakersBadge   = document.getElementById('cr-speakers-badge');
@@ -27,10 +31,14 @@ const segmentsEl      = document.getElementById('cr-segments');
 const actionsCard     = document.getElementById('cr-actions-card');
 const actionsBody     = document.getElementById('cr-actions-body');
 
+let currentMeetingId = null;
+let currentTheme = null;
+
 loadData();
 
 async function loadData() {
   const meetingId = new URLSearchParams(window.location.search).get('id');
+  currentMeetingId = meetingId;
   if (!meetingId) {
     summaryEl.textContent = 'Aucune réunion sélectionnée.';
     return;
@@ -58,13 +66,36 @@ async function loadData() {
     renderMeta(d);
     await renderSummary(d);
     renderExchanges(d.segments, st, d.started_at);
-    renderActions(d.actions);
+
+    const actions = await ensureActionsAndTheme(d);
+    renderActions(actions);
   } catch (err) {
     summaryEl.textContent = 'Impossible de charger cette réunion.';
   }
 }
 
+// Si aucune action n'a encore été extraite, on lance l'extraction LLM
+// (thème + actions) une seule fois. On ne la relance pas si des actions
+// existent déjà, pour ne pas créer de doublons à chaque ouverture de page.
+async function ensureActionsAndTheme(details) {
+  if (details.actions && details.actions.length > 0) {
+    return details.actions;
+  }
+  try {
+    const result = await extractActions(details.id);
+    if (result.theme && !currentTheme) {
+      currentTheme = result.theme;
+      titleEl.textContent = currentTheme;
+    }
+    return result.actions;
+  } catch (err) {
+    return details.actions;
+  }
+}
+
 function renderMeta(details) {
+  currentTheme = details.theme || null;
+  titleEl.textContent = currentTheme || 'Réunion sans titre';
   const date = new Date(details.started_at).toLocaleString('fr-FR', {
     day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit',
   });
@@ -80,7 +111,7 @@ function renderMeta(details) {
   const participants = details.speakers?.length ?? 0;
   const participantsTxt = participants > 0 ? ` · ${participants} participant${participants > 1 ? 's' : ''}` : '';
 
-  metaEl.textContent = `${details.theme || 'Session sans titre'} · ${date}${duration}${participantsTxt}`;
+  metaEl.textContent = `${date}${duration}${participantsTxt}`;
 }
 
 async function renderSummary(details) {
@@ -180,6 +211,40 @@ function renderActions(actions) {
 
   actionsCard.style.display = '';
 }
+
+// ── Titre éditable ────────────────────────────────────────────────────────
+// N'enregistre que si l'utilisateur a réellement tapé quelque chose : un
+// blur seul (clic ailleurs sur la page pendant que le texte de repli
+// "Réunion sans titre" est affiché) ne doit jamais être pris pour un
+// renommage volontaire.
+let titleEditedByUser = false;
+
+titleEl.addEventListener('input', () => {
+  titleEditedByUser = true;
+});
+
+titleEl.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    titleEl.blur();
+  }
+});
+
+titleEl.addEventListener('blur', async () => {
+  if (!titleEditedByUser) return;
+  titleEditedByUser = false;
+
+  const newTheme = titleEl.textContent.trim();
+  if (newTheme === (currentTheme || '')) return;
+
+  try {
+    const result = await updateMeetingTheme(currentMeetingId, newTheme || null);
+    currentTheme = result.theme;
+    titleEl.textContent = currentTheme || 'Réunion sans titre';
+  } catch (err) {
+    titleEl.textContent = currentTheme || 'Réunion sans titre';
+  }
+});
 
 // ── Action buttons ────────────────────────────────────────────────────────
 document.getElementById('btn-pdf').addEventListener('click', () => window.print());

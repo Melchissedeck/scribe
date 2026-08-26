@@ -3,11 +3,13 @@
 ## Contexte
 
 `LLMService.generate_structured_summary()` génère un compte-rendu de réunion
-structuré en JSON à partir d'une transcription, via l'API TogetherAI.
+structuré en JSON à partir d'une transcription, via l'API Anthropic (Claude
+Sonnet).
 
 Contrairement à `generate_summary()` (texte libre), cette méthode impose au
-LLM un format de sortie strict, validé côté serveur, avec une nouvelle
-tentative automatique si le JSON retourné est invalide ou mal formé.
+LLM un format de sortie strict via les structured outputs de l'API : la
+conformité du JSON au schéma est garantie côté serveur, sans logique de
+nouvelle tentative côté application.
 
 ## Schéma attendu
 

@@ -27,6 +27,8 @@ htmlcov/
 
 # Certificats HTTPS locaux
 frontend/certs/
+frontend/cert.pem
+frontend/key.pem
 
 # Fichiers audio uploadés localement (mode dictaphone)
 backend/uploads/

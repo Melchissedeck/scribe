@@ -88,6 +88,17 @@ export function generateSummary(meetingId) {
   return apiRequest(`/meetings/${meetingId}/generate-summary`, { method: 'POST' });
 }
 
+export function extractActions(meetingId) {
+  return apiRequest(`/meetings/${meetingId}/extract-actions`, { method: 'POST' });
+}
+
+export function updateMeetingTheme(meetingId, theme) {
+  return apiRequest(`/meetings/${meetingId}/theme`, {
+    method: 'PATCH',
+    body: JSON.stringify({ theme }),
+  });
+}
+
 export function startRecording(platform, nativeMeetingId, botName, meetingUrl) {
   return apiRequest('/recording/start', {
     method: 'POST',
