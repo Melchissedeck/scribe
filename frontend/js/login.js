@@ -1,12 +1,14 @@
 ﻿// Logique de la page de connexion
 
 import { loginUser, ApiError } from './api.js';
+import { initPasswordToggles } from './password-toggle.js';
 
 const form = document.getElementById('login-form');
 const errorMessage = document.getElementById('error-message');
 const submitButton = document.getElementById('submit-button');
 
 form.addEventListener('submit', handleSubmit);
+initPasswordToggles();
 
 async function handleSubmit(event) {
   event.preventDefault();
