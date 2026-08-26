@@ -2,6 +2,7 @@
 
 from contextlib import asynccontextmanager
 
+import sentry_sdk
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -23,6 +24,15 @@ from app.routes import (
     recording,
     summary,
     users,
+)
+
+# No-op si SENTRY_DSN est vide (pas de projet Sentry configure) : voir
+# app/config.py. traces_sample_rate a 100% est volontaire vu le volume de
+# requetes de ce projet ; a revoir si le trafic reel augmente.
+sentry_sdk.init(
+    dsn=settings.sentry_dsn,
+    send_default_pii=False,
+    traces_sample_rate=1.0,
 )
 
 
