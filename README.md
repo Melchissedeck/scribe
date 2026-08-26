@@ -1,5 +1,7 @@
 ﻿# Scribe
 
+[![CI](https://github.com/Melchissedeck/scribe/actions/workflows/ci.yml/badge.svg?branch=dev)](https://github.com/Melchissedeck/scribe/actions/workflows/ci.yml)
+
 Assistant de réunion intelligent : captation, transcription, compte-rendu et suivi des actions.
 
 ## Stack technique
@@ -20,9 +22,14 @@ Depuis `backend/`, avec l'environnement virtuel activé :
 ```bash
 python -m ruff check .
 python -m mypy .
+python -m pytest
 ```
 
-La configuration se trouve dans `backend/pyproject.toml`.
+La configuration se trouve dans `backend/pyproject.toml` (ruff, mypy) et
+`backend/pytest.ini` (pytest, couverture).
+
+Ces trois commandes s'exécutent automatiquement sur chaque pull request vers
+`dev` via [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
 
 ## Structure du projet
 
