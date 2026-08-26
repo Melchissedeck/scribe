@@ -6,6 +6,7 @@ from alembic import context
 from app.config import settings
 from app.database import Base
 from app.models.action import Action  # noqa: F401
+from app.models.log import Log  # noqa: F401
 from app.models.recording import Recording  # noqa: F401
 from app.models.speaker import Speaker  # noqa: F401
 from app.models.transcript_segment import TranscriptSegment  # noqa: F401

@@ -12,6 +12,7 @@ from app.models.speaker import Speaker
 from app.models.transcript_segment import TranscriptSegment
 from app.models.user import User
 from app.schemas.user import UserRead, UserUpdate
+from app.services.audit_log_service import record_log
 
 router = APIRouter(prefix='/users', tags=['users'])
 
@@ -93,6 +94,8 @@ def delete_account(
         ).delete(synchronize_session=False)
         db.query(Speaker).filter(Speaker.recording_id.in_(recording_ids)).delete(synchronize_session=False)
         db.query(Recording).filter(Recording.id.in_(recording_ids)).delete(synchronize_session=False)
+
+    record_log(db, action='account_deletion', user_id=current_user.id, detail=current_user.email)
 
     db.delete(current_user)
     db.commit()
