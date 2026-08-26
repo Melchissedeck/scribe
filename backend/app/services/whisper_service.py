@@ -85,8 +85,17 @@ class WhisperService:
         Retourne une liste de (offset_en_secondes, chemin_de_la_tranche). Un
         fichier deja assez court est retourne tel quel dans une liste a un
         seul element, sans creer de fichier temporaire.
+
+        Si pydub/ffmpeg ne parvient pas a lire le fichier (ffmpeg absent,
+        format non reconnu localement), le fichier est transmis tel quel a
+        Whisper plutot que de faire echouer toute la transcription : avant
+        le decoupage, l'envoi ne necessitait aucun traitement local.
         """
-        audio = AudioSegment.from_file(audio_path)
+        try:
+            audio = AudioSegment.from_file(audio_path)
+        except Exception:
+            return [(0.0, Path(audio_path))]
+
         duration_ms = len(audio)
 
         if duration_ms <= _CHUNK_DURATION_MS:

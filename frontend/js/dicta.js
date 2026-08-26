@@ -40,6 +40,10 @@ const transcriptionContent = document.getElementById('transcription-content');
 const transcriptionSegments = document.getElementById('transcription-segments');
 const transcriptionError = document.getElementById('transcription-error');
 
+const connectionBadge = document.getElementById('connection-badge');
+const connectionDot = document.getElementById('connection-dot');
+const connectionText = document.getElementById('connection-text');
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // État
@@ -53,6 +57,101 @@ let currentRecordingId = null;
 
 let timerInterval = null;
 let elapsedSeconds = 0;
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Buffer local (coupures réseau)
+//
+// L'audio uploadé après l'arrêt de l'enregistrement peut échouer si la
+// connexion est coupée à ce moment précis. Plutôt que de perdre
+// l'enregistrement, le blob est sauvegardé dans IndexedDB et renvoyé
+// automatiquement dès que la connexion revient (événement 'online').
+// ─────────────────────────────────────────────────────────────────────────────
+
+const BUFFER_DB_NAME = 'scribe-dicta-buffer';
+const BUFFER_STORE_NAME = 'pending-uploads';
+
+function openBufferDb() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(BUFFER_DB_NAME, 1);
+
+    request.addEventListener('upgradeneeded', () => {
+      request.result.createObjectStore(BUFFER_STORE_NAME);
+    });
+
+    request.addEventListener('success', () => resolve(request.result));
+    request.addEventListener('error', () => reject(request.error));
+  });
+}
+
+async function bufferPendingAudio(recordingId, audioBlob) {
+  const db = await openBufferDb();
+
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(BUFFER_STORE_NAME, 'readwrite');
+    tx.objectStore(BUFFER_STORE_NAME).put(audioBlob, String(recordingId));
+    tx.addEventListener('complete', () => resolve());
+    tx.addEventListener('error', () => reject(tx.error));
+  });
+}
+
+async function getAllPendingAudio() {
+  const db = await openBufferDb();
+
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(BUFFER_STORE_NAME, 'readonly');
+    const store = tx.objectStore(BUFFER_STORE_NAME);
+    const keysRequest = store.getAllKeys();
+    const valuesRequest = store.getAll();
+
+    tx.addEventListener('complete', () => {
+      resolve(keysRequest.result.map((key, i) => [key, valuesRequest.result[i]]));
+    });
+    tx.addEventListener('error', () => reject(tx.error));
+  });
+}
+
+async function clearPendingAudio(recordingId) {
+  const db = await openBufferDb();
+
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(BUFFER_STORE_NAME, 'readwrite');
+    tx.objectStore(BUFFER_STORE_NAME).delete(String(recordingId));
+    tx.addEventListener('complete', () => resolve());
+    tx.addEventListener('error', () => reject(tx.error));
+  });
+}
+
+function isNetworkError(error) {
+  // fetch() rejette avec un TypeError quand la requête n'atteint pas le
+  // réseau du tout (coupure, DNS...), à distinguer d'une réponse HTTP
+  // d'erreur (4xx/5xx), qui elle ne doit pas être mise en attente.
+  return error instanceof TypeError || !navigator.onLine;
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Indicateur de connexion
+// ─────────────────────────────────────────────────────────────────────────────
+
+function updateConnectionStatus() {
+  const online = navigator.onLine;
+
+  connectionDot.classList.toggle('connection-dot--offline', !online);
+  connectionBadge.classList.toggle('connection-badge--offline', !online);
+
+  connectionText.textContent = online
+    ? 'Connecté'
+    : 'Hors ligne — l’enregistrement continue localement';
+
+  if (online) {
+    flushPendingUploads();
+  }
+}
+
+window.addEventListener('online', updateConnectionStatus);
+window.addEventListener('offline', updateConnectionStatus);
+updateConnectionStatus();
 
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -418,81 +517,25 @@ async function handleRecordingStop() {
 
     clearTranscriptionError();
 
-    // Upload
-    await uploadAudio(
-      currentRecordingId,
-      audioBlob,
-    );
-
-    // Transcription
-    transcriptionStatus.textContent =
-      'Transcription en cours...';
-
-    const result = await transcribeAudio(
-      currentRecordingId,
-    );
-
-    // Affichage de la transcription classique
-    transcriptionLoading.classList.add(
-      'visio-hidden',
-    );
-
-    transcriptionResult.classList.remove(
-      'visio-hidden',
-    );
-
-    transcriptionStatus.textContent =
-      'Transcription terminée';
-
-    transcriptionContent.classList.remove(
-      'visio-hidden',
-    );
-
-    transcriptionSegments.classList.add(
-      'visio-hidden',
-    );
-
-    transcriptionContent.textContent =
-      result.transcript ||
-      '(Aucune transcription disponible)';
-
-    // Tentative de diarisation
+    // Upload, avec mise en attente locale si la connexion est coupée
     try {
-      transcriptionStatus.textContent =
-        'Identification des intervenants...';
-
-      const diarizationResult = await diarizeAudio(
-        currentRecordingId,
-      );
-
-      const displayed = displaySpeakerSegments(
-        diarizationResult.segments,
-      );
-
-      if (displayed) {
-        transcriptionStatus.textContent =
-          'Transcription terminée';
+      await uploadAudio(currentRecordingId, audioBlob);
+    } catch (uploadError) {
+      if (!isNetworkError(uploadError)) {
+        throw uploadError;
       }
 
-    } catch (diarizationError) {
-      console.warn(
-        'La diarisation est indisponible. La transcription normale est conservée.',
-        diarizationError,
-      );
+      await bufferPendingAudio(currentRecordingId, audioBlob);
 
-      transcriptionSegments.innerHTML = '';
-
-      transcriptionSegments.classList.add(
-        'visio-hidden',
-      );
-
-      transcriptionContent.classList.remove(
-        'visio-hidden',
-      );
-
+      transcriptionLoading.classList.add('visio-hidden');
       transcriptionStatus.textContent =
-        'Transcription terminée';
+        'Connexion perdue — l’enregistrement est sauvegardé localement ' +
+        'et sera envoyé automatiquement dès le retour de la connexion.';
+
+      return;
     }
+
+    await runTranscriptionPipeline(currentRecordingId);
 
   } catch (error) {
     console.error(error);
@@ -513,6 +556,82 @@ async function handleRecordingStop() {
 
     if (mediaRecorder) {
       mediaRecorder = null;
+    }
+  }
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Transcription + diarisation (après upload réussi)
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function runTranscriptionPipeline(recordingId) {
+  transcriptionStatus.textContent = 'Transcription en cours...';
+
+  const result = await transcribeAudio(recordingId);
+
+  transcriptionLoading.classList.add('visio-hidden');
+  transcriptionResult.classList.remove('visio-hidden');
+  transcriptionStatus.textContent = 'Transcription terminée';
+  transcriptionContent.classList.remove('visio-hidden');
+  transcriptionSegments.classList.add('visio-hidden');
+  transcriptionContent.textContent =
+    result.transcript || '(Aucune transcription disponible)';
+
+  // Tentative de diarisation
+  try {
+    transcriptionStatus.textContent = 'Identification des intervenants...';
+
+    const diarizationResult = await diarizeAudio(recordingId);
+    const displayed = displaySpeakerSegments(diarizationResult.segments);
+
+    if (displayed) {
+      transcriptionStatus.textContent = 'Transcription terminée';
+    }
+
+  } catch (diarizationError) {
+    console.warn(
+      'La diarisation est indisponible. La transcription normale est conservée.',
+      diarizationError,
+    );
+
+    transcriptionSegments.innerHTML = '';
+    transcriptionSegments.classList.add('visio-hidden');
+    transcriptionContent.classList.remove('visio-hidden');
+    transcriptionStatus.textContent = 'Transcription terminée';
+  }
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Renvoi automatique des enregistrements bufferisés (retour de connexion)
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function flushPendingUploads() {
+  let pending;
+
+  try {
+    pending = await getAllPendingAudio();
+  } catch (error) {
+    console.warn('Impossible de lire le buffer local.', error);
+    return;
+  }
+
+  for (const [recordingId, audioBlob] of pending) {
+    try {
+      await uploadAudio(recordingId, audioBlob);
+      await clearPendingAudio(recordingId);
+
+      if (String(recordingId) === String(currentRecordingId)) {
+        await runTranscriptionPipeline(recordingId);
+      }
+    } catch (error) {
+      if (isNetworkError(error)) {
+        // Toujours hors ligne : on retentera au prochain événement 'online'.
+        break;
+      }
+
+      console.error('Échec de l’envoi bufferisé.', error);
     }
   }
 }
