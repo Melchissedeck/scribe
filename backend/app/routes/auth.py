@@ -6,6 +6,7 @@ from app.exceptions import InvalidCredentialsError
 from app.models.user import User
 from app.schemas.token import Token
 from app.schemas.user import UserCreate, UserLogin, UserRead
+from app.services.audit_log_service import record_log
 from app.services.jwt import create_access_token
 from app.services.password import hash_password, verify_password
 
@@ -69,6 +70,9 @@ def login(credentials: UserLogin, db: Session = Depends(get_db)) -> Token:
 
     if user is None or not verify_password(credentials.password, user.hashed_password):
         raise InvalidCredentialsError('Email ou mot de passe incorrect')
+
+    record_log(db, action='login', user_id=user.id, detail=user.email)
+    db.commit()
 
     access_token = create_access_token(user.id)
     return Token(access_token=access_token)
