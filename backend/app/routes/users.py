@@ -1,12 +1,23 @@
+import shutil
+from pathlib import Path
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.dependencies import get_current_user
+from app.models.action import Action
+from app.models.recording import Recording
+from app.models.speaker import Speaker
+from app.models.transcript_segment import TranscriptSegment
 from app.models.user import User
 from app.schemas.user import UserRead, UserUpdate
 
 router = APIRouter(prefix='/users', tags=['users'])
+
+# Meme convention que app/routes/dictaphone.py : fichiers audio stockes dans
+# uploads/<recording_id>/ relativement au repertoire de travail du backend.
+UPLOAD_DIR = Path('uploads')
 
 
 @router.patch('/me', response_model=UserRead)
@@ -49,3 +60,43 @@ def update_profile(
     db.refresh(current_user)
 
     return current_user
+
+
+@router.delete('/me', status_code=status.HTTP_204_NO_CONTENT)
+def delete_account(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> None:
+    """Supprime définitivement le compte connecté et toutes ses données.
+
+    Supprime en cascade les actions, segments de transcription et locuteurs
+    de chaque réunion de l'utilisateur, puis les réunions elles-mêmes, les
+    fichiers audio associés stockés sur le serveur, et enfin le compte,
+    conformément au droit à l'effacement RGPD. Opération irréversible.
+
+    Args:
+        db: Session de base de données injectée par FastAPI.
+        current_user: Utilisateur authentifié, résolu depuis le token JWT.
+
+    Returns:
+        Aucun contenu (204) en cas de succès.
+    """
+    recording_ids = [
+        row[0]
+        for row in db.query(Recording.id).filter(Recording.user_id == current_user.id).all()
+    ]
+
+    if recording_ids:
+        db.query(Action).filter(Action.recording_id.in_(recording_ids)).delete(synchronize_session=False)
+        db.query(TranscriptSegment).filter(
+            TranscriptSegment.recording_id.in_(recording_ids)
+        ).delete(synchronize_session=False)
+        db.query(Speaker).filter(Speaker.recording_id.in_(recording_ids)).delete(synchronize_session=False)
+        db.query(Recording).filter(Recording.id.in_(recording_ids)).delete(synchronize_session=False)
+
+    db.delete(current_user)
+    db.commit()
+
+    for recording_id in recording_ids:
+        recording_dir = UPLOAD_DIR / str(recording_id)
+        shutil.rmtree(recording_dir, ignore_errors=True)
