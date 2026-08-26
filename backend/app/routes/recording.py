@@ -6,13 +6,12 @@ from sqlalchemy.orm import Session
 
 from app.database import SessionLocal, get_db
 from app.dependencies import get_current_user
-from app.exceptions import VexaConnectionError, VexaInvalidMeetingError
+from app.exceptions import VexaConnectionError
 from app.models.recording import Recording
 from app.models.speaker import Speaker
 from app.models.transcript_segment import TranscriptSegment
 from app.models.user import User
 from app.schemas.recording import RecordingCreate, RecordingRead
-from app.services.llm_service import LLMService
 from vexa_agent import VexaAgent
 
 logger = logging.getLogger(__name__)
