@@ -147,4 +147,8 @@ export function transcribeRecording(recordingId) {
   return apiRequest(`/meetings/${recordingId}/transcribe`, { method: 'POST' });
 }
 
+export function deleteAccount() {
+  return apiRequest('/users/me', { method: 'DELETE' });
+}
+
 export { ApiError };
