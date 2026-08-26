@@ -16,6 +16,7 @@ from app.exceptions import (
 from app.routes import (
     action_status,
     actions,
+    admin,
     auth,
     dictaphone,
     meetings,
@@ -112,6 +113,7 @@ app.include_router(meetings.router)
 app.include_router(users.router)
 app.include_router(actions.router)
 app.include_router(action_status.router)
+app.include_router(admin.router)
 
 @app.get("/health")
 def health_check() -> dict[str, str]:

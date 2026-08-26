@@ -40,5 +40,10 @@ class Settings:
         "",
     )
 
+    admin_api_key: str = os.getenv(
+        "ADMIN_API_KEY",
+        "",
+    )
+
 
 settings = Settings()
