@@ -39,6 +39,33 @@
   }
 }
 
+.connection-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 8px;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.connection-badge--offline {
+  color: var(--color-error);
+}
+
+.connection-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--color-success);
+}
+
+.connection-dot--offline {
+  background-color: var(--color-error);
+  animation: recording-pulse 1.2s infinite;
+}
+
 .dicta-timer {
   margin-top: 18px;
   text-align: center;
