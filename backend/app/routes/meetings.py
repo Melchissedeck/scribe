@@ -196,7 +196,7 @@ def classify_segments(
         )
 
     llm_service = LLMService()
-    result = llm_service.classify_segments([seg.text for seg in segments])
+    result = llm_service.classify_segments([str(seg.text) for seg in segments])
     if result is None:
         raise HTTPException(
             status_code=502,
