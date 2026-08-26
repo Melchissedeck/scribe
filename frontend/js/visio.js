@@ -1,10 +1,9 @@
 import { requireConsent } from './consent.js';
 import {
   startRecording, stopRecording, refreshTranscript,
-  createDictaphoneRecording, uploadAudioFile, transcribeRecording,
+  getSpeakingTime, createDictaphoneRecording, uploadAudioFile, transcribeRecording,
   ApiError,
 } from './api.js';
-import { startRecording, stopRecording, refreshTranscript, getSpeakingTime, ApiError } from './api.js';
 
 requireConsent();
 
@@ -26,21 +25,19 @@ const statusDot      = document.getElementById('status-dot');
 const statusLabel    = document.getElementById('status-label');
 const platformBadge  = document.getElementById('platform-badge');
 const meetingIdDisp  = document.getElementById('meeting-id-display');
-const transcriptEl   = document.getElementById('transcript-content');
-const finalTranscript  = document.getElementById('final-transcript');
-const detailLink       = document.getElementById('detail-link');
-const sessionError     = document.getElementById('session-error');
-const fallbackSection  = document.getElementById('fallback-section');
-const audioFileInput   = document.getElementById('audio-file-input');
-const fileLabelText    = document.getElementById('file-label-text');
-const uploadBtn        = document.getElementById('upload-button');
-const uploadError      = document.getElementById('upload-error');
-const finalTranscript      = document.getElementById('final-transcript');
-const speakingTimeSection  = document.getElementById('speaking-time-section');
-const speakingTimeList     = document.getElementById('speaking-time-list');
-const sessionError         = document.getElementById('session-error');
-const stopBtn        = document.getElementById('stop-button');
-const elapsedEl      = document.getElementById('elapsed-time');
+const transcriptEl        = document.getElementById('transcript-content');
+const finalTranscript     = document.getElementById('final-transcript');
+const detailLink          = document.getElementById('detail-link');
+const sessionError        = document.getElementById('session-error');
+const stopBtn             = document.getElementById('stop-button');
+const elapsedEl           = document.getElementById('elapsed-time');
+const fallbackSection     = document.getElementById('fallback-section');
+const audioFileInput      = document.getElementById('audio-file-input');
+const fileLabelText       = document.getElementById('file-label-text');
+const uploadBtn           = document.getElementById('upload-button');
+const uploadError         = document.getElementById('upload-error');
+const speakingTimeSection = document.getElementById('speaking-time-section');
+const speakingTimeList    = document.getElementById('speaking-time-list');
 
 // ── State ─────────────────────────────────────────────────────────────────
 let selectedPlatform   = null;
@@ -133,11 +130,16 @@ stopBtn.addEventListener('click', async () => {
     statusDot.classList.add('status-dot--stopped');
     statusLabel.textContent = 'Session arrêtée';
 
-    finalTranscript.textContent = recording.transcript || '(Aucune transcription disponible)';
-    detailLink.href = `meeting-detail.html?id=${currentRecordingId}`;
+    finalTranscript.textContent = recording.transcript || transcriptEl.textContent || '(Aucune transcription disponible)';
+    detailLink.href = `meeting-detail.html?id=${recording.id}`;
     loadSpeakingTime(currentRecordingId);
     showPanel(donePanel);
   } catch (err) {
+    if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
+      sessionStorage.removeItem('access_token');
+      window.location.href = 'login.html';
+      return;
+    }
     sessionError.textContent = err instanceof ApiError ? err.message : "Erreur lors de l'arrêt.";
     stopBtn.disabled = false;
     stopBtn.textContent = 'Arrêter la session';
@@ -184,7 +186,7 @@ function startPolling() {
     } catch (_) {
       // keep polling silently on transient errors
     }
-  }, 5000);
+  }, 2000);
 }
 
 // ── Elapsed timer ─────────────────────────────────────────────────────────

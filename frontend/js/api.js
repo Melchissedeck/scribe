@@ -84,6 +84,10 @@ export function getMeetingDetails(meetingId) {
   return apiRequest(`/meetings/${meetingId}/details`, { method: 'GET' });
 }
 
+export function generateSummary(meetingId) {
+  return apiRequest(`/meetings/${meetingId}/generate-summary`, { method: 'POST' });
+}
+
 export function startRecording(platform, nativeMeetingId, botName, meetingUrl) {
   return apiRequest('/recording/start', {
     method: 'POST',
