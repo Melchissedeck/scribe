@@ -39,6 +39,7 @@ const transcriptionResult = document.getElementById('transcription-result');
 const transcriptionContent = document.getElementById('transcription-content');
 const transcriptionSegments = document.getElementById('transcription-segments');
 const transcriptionError = document.getElementById('transcription-error');
+const speakingTimeEl = document.getElementById('speaking-time');
 
 const connectionBadge = document.getElementById('connection-badge');
 const connectionDot = document.getElementById('connection-dot');
@@ -257,6 +258,57 @@ async function diarizeAudio(recordingId) {
   return apiRequest(`/meetings/${recordingId}/diarize`, {
     method: 'POST',
   });
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Temps de parole
+//
+// Réutilise la même route que le mode visio (GET /meetings/{id}/speaking-time,
+// US-51) : elle calcule les temps de parole à partir des TranscriptSegment
+// du recording, sans distinction de plateforme, donc le calcul est
+// identique entre visio et dictaphone.
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function getSpeakingTime(recordingId) {
+  return apiRequest(`/meetings/${recordingId}/speaking-time`, {
+    method: 'GET',
+  });
+}
+
+function displaySpeakingTime(entries) {
+  speakingTimeEl.innerHTML = '';
+
+  if (!Array.isArray(entries) || entries.length === 0) {
+    speakingTimeEl.classList.add('visio-hidden');
+    return;
+  }
+
+  entries.forEach((entry) => {
+    const row = document.createElement('div');
+    row.className = 'speaking-time-entry';
+
+    const meta = document.createElement('div');
+    meta.className = 'speaking-time-meta';
+    meta.innerHTML = `
+      <span>${entry.speaker || 'Intervenant'}</span>
+      <span>${entry.percentage}%</span>
+    `;
+
+    const track = document.createElement('div');
+    track.className = 'speaking-time-track';
+
+    const bar = document.createElement('div');
+    bar.className = 'speaking-time-bar';
+    bar.style.width = `${entry.percentage}%`;
+
+    track.appendChild(bar);
+    row.appendChild(meta);
+    row.appendChild(track);
+    speakingTimeEl.appendChild(row);
+  });
+
+  speakingTimeEl.classList.remove('visio-hidden');
 }
 
 
@@ -589,6 +641,15 @@ async function runTranscriptionPipeline(recordingId) {
       transcriptionStatus.textContent = 'Transcription terminée';
     }
 
+    // Temps de parole : nécessite les segments diarisés, donc seulement
+    // tenté si la diarisation a réussi.
+    try {
+      const speakingTime = await getSpeakingTime(recordingId);
+      displaySpeakingTime(speakingTime.entries);
+    } catch (speakingTimeError) {
+      console.warn('Statistiques de temps de parole indisponibles.', speakingTimeError);
+    }
+
   } catch (diarizationError) {
     console.warn(
       'La diarisation est indisponible. La transcription normale est conservée.',
@@ -667,6 +728,9 @@ newRecordingButton.addEventListener('click', () => {
   transcriptionSegments.innerHTML = '';
   transcriptionSegments.classList.add('visio-hidden');
   transcriptionContent.classList.remove('visio-hidden');
+
+  speakingTimeEl.innerHTML = '';
+  speakingTimeEl.classList.add('visio-hidden');
 
   showRecordingView();
 });
