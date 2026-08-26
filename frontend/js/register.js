@@ -1,12 +1,14 @@
 ﻿// Logique de la page d'inscription
 
 import { registerUser, ApiError } from './api.js';
+import { initPasswordToggles } from './password-toggle.js';
 
 const form = document.getElementById('register-form');
 const errorMessage = document.getElementById('error-message');
 const submitButton = document.getElementById('submit-button');
 
 form.addEventListener('submit', handleSubmit);
+initPasswordToggles();
 
 async function handleSubmit(event) {
   event.preventDefault();
