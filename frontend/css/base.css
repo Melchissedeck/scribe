@@ -66,6 +66,35 @@ a {
   border-color: var(--color-primary);
 }
 
+.password-field {
+  position: relative;
+}
+
+.password-field .input-field {
+  padding-right: 40px;
+}
+
+.password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  padding: 0;
+}
+
+.password-toggle:hover {
+  color: var(--color-text-secondary);
+}
+
 .error-message {
   color: var(--color-error);
   font-size: 12.5px;
