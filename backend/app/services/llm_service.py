@@ -3,27 +3,78 @@ import logging
 import anthropic
 
 from app.config import settings
+from app.exceptions import LLMError
 from app.schemas.llm_summary import StructuredSummary
 
 logger = logging.getLogger(__name__)
 
 MAX_TOKENS = 16000
 
+# Timeout explicite par appel : couvre la latence réseau + génération.
+# Plus généreux que la valeur par défaut du SDK (10 min) n'est pas
+# nécessaire, mais on la borne pour ne jamais laisser une requête HTTP
+# de l'app pendre indéfiniment sur un appel LLM.
+LLM_TIMEOUT_SECONDS = 90.0
+
 
 class LLMService:
     """Service responsable de la génération de résumés via l'API Anthropic."""
 
     def __init__(self):
-        self.client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
+        self.client = anthropic.Anthropic(
+            api_key=settings.anthropic_api_key,
+            timeout=LLM_TIMEOUT_SECONDS,
+        )
         self.model = settings.anthropic_model
+
+    def _handle_api_error(self, exc: Exception, context: str) -> LLMError:
+        """
+        Traduit une exception du SDK Anthropic en LLMError typée, en
+        loguant systématiquement le type d'erreur pour le suivi de la
+        consommation et des incidents.
+        """
+        if isinstance(exc, anthropic.APITimeoutError):
+            logger.error("[LLM][timeout] %s: %s", context, exc)
+            return LLMError(
+                error_type="timeout",
+                message="Le service IA met trop de temps à répondre. Veuillez réessayer dans quelques instants.",
+            )
+
+        if isinstance(exc, anthropic.RateLimitError):
+            logger.error("[LLM][quota_exceeded] %s: %s", context, exc)
+            return LLMError(
+                error_type="quota_exceeded",
+                message="Le quota de l'API IA a été atteint. Veuillez réessayer un peu plus tard.",
+            )
+
+        if isinstance(exc, anthropic.APIStatusError):
+            logger.error("[LLM][api_error] %s: %s", context, exc)
+            return LLMError(
+                error_type="api_error",
+                message="Le service IA est momentanément indisponible. Veuillez réessayer dans quelques instants.",
+            )
+
+        if isinstance(exc, anthropic.APIConnectionError):
+            logger.error("[LLM][connection] %s: %s", context, exc)
+            return LLMError(
+                error_type="connection",
+                message="Impossible de contacter le service IA. Veuillez réessayer dans quelques instants.",
+            )
+
+        logger.error("[LLM][invalid_response] %s: %s", context, exc)
+        return LLMError(
+            error_type="invalid_response",
+            message="Le service IA a renvoyé une réponse inattendue. Veuillez réessayer.",
+        )
 
     def generate_summary(self, transcription: str) -> str | None:
         """
         Génère un résumé en texte libre à partir d'une transcription.
 
-        Retourne None (au lieu de lever une exception) en cas d'erreur
-        API (timeout, quota dépassé, réseau, etc.) afin de ne jamais
-        faire planter l'application appelante.
+        Retourne None uniquement si la transcription est vide (rien à
+        faire). En cas d'échec de l'appel API (timeout, quota dépassé,
+        réponse invalide, etc.), lève LLMError plutôt que de faire
+        planter l'application appelante.
         """
         if not transcription or not transcription.strip():
             logger.warning("generate_summary appelé avec une transcription vide.")
@@ -44,21 +95,8 @@ class LLMService:
             )
             return next((block.text for block in response.content if block.type == "text"), None)
 
-        except anthropic.RateLimitError as exc:
-            logger.error("Limite de débit Anthropic atteinte lors de la génération du résumé: %s", exc)
-            return None
-
-        except anthropic.APIStatusError as exc:
-            logger.error("Erreur Anthropic lors de la génération du résumé: %s", exc)
-            return None
-
-        except anthropic.APIConnectionError as exc:
-            logger.error("Erreur réseau lors de l'appel à Anthropic: %s", exc)
-            return None
-
         except Exception as exc:
-            logger.error("Erreur inattendue lors de l'appel LLM: %s", exc)
-            return None
+            raise self._handle_api_error(exc, "génération du résumé") from exc
 
     def generate_structured_summary(self, transcription: str) -> StructuredSummary | None:
         """
@@ -66,8 +104,8 @@ class LLMService:
         partir d'une transcription. La conformité du JSON au schéma
         StructuredSummary est garantie côté API (structured outputs).
 
-        Retourne None si la transcription est vide ou si l'appel échoue.
-        Ne lève jamais d'exception.
+        Retourne None uniquement si la transcription est vide. Lève
+        LLMError si l'appel API échoue.
         """
         if not transcription or not transcription.strip():
             logger.warning("generate_structured_summary appelé avec une transcription vide.")
@@ -91,18 +129,5 @@ class LLMService:
             )
             return response.parsed_output
 
-        except anthropic.RateLimitError as exc:
-            logger.error("Limite de débit Anthropic atteinte lors de la génération du compte-rendu structuré: %s", exc)
-            return None
-
-        except anthropic.APIStatusError as exc:
-            logger.error("Erreur Anthropic lors de la génération du compte-rendu structuré: %s", exc)
-            return None
-
-        except anthropic.APIConnectionError as exc:
-            logger.error("Erreur réseau lors de l'appel à Anthropic: %s", exc)
-            return None
-
         except Exception as exc:
-            logger.error("Erreur inattendue lors de l'appel LLM structuré: %s", exc)
-            return None
+            raise self._handle_api_error(exc, "génération du compte-rendu structuré") from exc

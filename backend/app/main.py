@@ -10,6 +10,7 @@ from fastapi.responses import JSONResponse
 from app.config import settings
 from app.exceptions import (
     InvalidCredentialsError,
+    LLMError,
     TokenExpiredError,
     VexaConnectionError,
     VexaInvalidMeetingError,
@@ -112,6 +113,17 @@ def handle_vexa_connection_error(
     return JSONResponse(
         status_code=503,
         content={"detail": "Le service de réunion est temporairement indisponible. Veuillez réessayer dans quelques instants."},
+    )
+
+
+@app.exception_handler(LLMError)
+def handle_llm_error(
+    request: Request,
+    exc: LLMError,
+) -> JSONResponse:
+    return JSONResponse(
+        status_code=503,
+        content={"detail": exc.message, "error_type": exc.error_type},
     )
 
 

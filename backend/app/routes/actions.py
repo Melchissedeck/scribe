@@ -44,6 +44,10 @@ def extract_actions(
     structured = llm_service.generate_structured_summary(recording.transcript)
 
     if structured is None:
+        # Ne peut se produire ici : generate_structured_summary ne renvoie
+        # None que pour une transcription vide, déjà exclue par le contrôle
+        # plus haut. Un échec réel de l'appel API lève LLMError, gérée
+        # globalement (voir app/main.py). Ce garde-fou reste pour le typage.
         raise HTTPException(
             status_code=502,
             detail="Le service de génération du compte-rendu structuré est momentanément indisponible.",
