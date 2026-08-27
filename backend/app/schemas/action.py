@@ -21,4 +21,8 @@ class ExtractActionsResponse(BaseModel):
     theme: str | None = None
 
 class ActionStatusUpdate(BaseModel):
-    status: Literal['todo', 'in_progress', 'done']    
+    status: Literal['todo', 'in_progress', 'done']
+
+
+class ActionDueDateUpdate(BaseModel):
+    due_date: date | None = None
