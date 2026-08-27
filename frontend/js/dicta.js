@@ -1,4 +1,4 @@
-import { requireConsent } from './consent.js';
+﻿import { requireConsent } from './consent.js';
 
 requireConsent();
 
@@ -26,7 +26,7 @@ const transcriptionView = document.getElementById('transcription-view');
 
 const startButton = document.getElementById('start-recording-button');
 const stopButton = document.getElementById('stop-recording-button');
-const newRecordingButton = document.getElementById('new-recording-button');
+const viewReportButton = document.getElementById('view-report-button');
 
 const recordingIndicator = document.getElementById('recording-indicator');
 const recordingStatus = document.getElementById('recording-status');
@@ -143,7 +143,7 @@ function updateConnectionStatus() {
 
   connectionText.textContent = online
     ? 'Connecté'
-    : 'Hors ligne — l’enregistrement continue localement';
+    : "Hors ligne — l'enregistrement continue localement";
 
   if (online) {
     flushPendingUploads();
@@ -230,7 +230,7 @@ async function uploadAudio(recordingId, audioBlob) {
     const message =
       data && data.detail
         ? data.detail
-        : 'Impossible d’envoyer l’audio.';
+        : "Impossible d'envoyer l'audio.";
 
     throw new Error(message);
   }
@@ -489,12 +489,12 @@ startButton.addEventListener('click', async () => {
     );
 
     startButton.disabled = false;
-    startButton.textContent = 'Commencer l’enregistrement';
+    startButton.textContent = "Commencer l'enregistrement";
     stopButton.disabled = true;
 
     recordingError.textContent =
       error.message ||
-      'Impossible de démarrer l’enregistrement.';
+      "Impossible de démarrer l'enregistrement.";
   }
 });
 
@@ -536,13 +536,13 @@ async function handleRecordingStop() {
   try {
     if (!currentRecordingId) {
       throw new Error(
-        'Aucun enregistrement n’a été créé.',
+        "Aucun enregistrement n'a été créé.",
       );
     }
 
     if (audioChunks.length === 0) {
       throw new Error(
-        'Aucun audio n’a été enregistré.',
+        "Aucun audio n'a été enregistré.",
       );
     }
 
@@ -565,7 +565,7 @@ async function handleRecordingStop() {
     );
 
     transcriptionStatus.textContent =
-      'Envoi de l’audio...';
+      "Envoi de l'audio...";
 
     clearTranscriptionError();
 
@@ -581,8 +581,8 @@ async function handleRecordingStop() {
 
       transcriptionLoading.classList.add('visio-hidden');
       transcriptionStatus.textContent =
-        'Connexion perdue — l’enregistrement est sauvegardé localement ' +
-        'et sera envoyé automatiquement dès le retour de la connexion.';
+        "Connexion perdue — l'enregistrement est sauvegardé localement " +
+        "et sera envoyé automatiquement dès le retour de la connexion.";
 
       return;
     }
@@ -692,45 +692,18 @@ async function flushPendingUploads() {
         break;
       }
 
-      console.error('Échec de l’envoi bufferisé.', error);
+      console.error("Échec de l'envoi bufferisé.", error);
     }
   }
 }
 
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Nouvel enregistrement
+// Voir le compte-rendu
 // ─────────────────────────────────────────────────────────────────────────────
 
-newRecordingButton.addEventListener('click', () => {
-  currentRecordingId = null;
-
-  elapsedSeconds = 0;
-  updateTimerDisplay();
-
-  recordingStatus.textContent = 'Prêt à enregistrer';
-
-  recordingIndicator.classList.remove(
-    'recording-indicator--active',
-  );
-
-  startButton.disabled = false;
-  startButton.textContent = 'Commencer l’enregistrement';
-
-  stopButton.disabled = true;
-  stopButton.textContent = 'Arrêter';
-
-  clearRecordingError();
-  clearTranscriptionError();
-
-  transcriptionContent.textContent = '';
-
-  transcriptionSegments.innerHTML = '';
-  transcriptionSegments.classList.add('visio-hidden');
-  transcriptionContent.classList.remove('visio-hidden');
-
-  speakingTimeEl.innerHTML = '';
-  speakingTimeEl.classList.add('visio-hidden');
-
-  showRecordingView();
+viewReportButton.addEventListener('click', () => {
+  if (currentRecordingId) {
+    window.location.href = `meeting-detail.html?id=${currentRecordingId}`;
+  }
 });
