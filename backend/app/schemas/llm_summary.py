@@ -1,4 +1,6 @@
 
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 
@@ -26,4 +28,24 @@ class StructuredSummary(BaseModel):
     actions: list[ActionItem] = Field(
         default_factory=list, description="Actions à réaliser suite à la réunion"
     )
-    
+
+
+class SegmentClassification(BaseModel):
+    """Classification d'un segment individuel de la transcription."""
+
+    index: int = Field(
+        ..., description="Index du segment dans la transcription (0-based, ordre chronologique)"
+    )
+    tone: Literal["neutre", "positif", "négatif", "tendu"] = Field(
+        ..., description="Ton dominant exprimé dans ce segment"
+    )
+    theme: str = Field(..., description="Thème ou sujet principal abordé dans ce segment")
+    urgency: Literal["faible", "moyenne", "élevée"] = Field(
+        ..., description="Niveau d'urgence exprimé dans ce segment"
+    )
+
+
+class SegmentClassificationResult(BaseModel):
+    """Classification ton/thème/urgence de chaque segment d'une transcription."""
+
+    classifications: list[SegmentClassification] = Field(default_factory=list)

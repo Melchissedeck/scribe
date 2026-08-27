@@ -13,6 +13,8 @@ from app.schemas.recording import (
     DiarizedTranscriptResponse,
     MeetingDetailResponse,
     MeetingListItem,
+    SegmentClassificationOut,
+    SegmentClassificationResponse,
     SegmentOut,
     SpeakerOut,
     SpeakingTimeEntry,
@@ -20,6 +22,7 @@ from app.schemas.recording import (
     ThemeResponse,
     ThemeUpdate,
 )
+from app.services.llm_service import LLMService
 
 router = APIRouter(prefix='/meetings', tags=['meetings'])
 
@@ -161,6 +164,111 @@ def get_diarized_transcript(
         meeting_id=meeting_id,
         segments=[
             SegmentOut(speaker_name=seg.speaker, text=seg.text)
+            for seg in segments
+        ],
+    )
+
+
+@router.post('/{meeting_id}/classify-segments', response_model=SegmentClassificationResponse)
+def classify_segments(
+    meeting_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    recording = (
+        db.query(Recording)
+        .filter(Recording.id == meeting_id, Recording.user_id == current_user.id)
+        .first()
+    )
+    if not recording:
+        raise HTTPException(status_code=404, detail='Réunion introuvable.')
+
+    segments = (
+        db.query(TranscriptSegment)
+        .filter(TranscriptSegment.recording_id == meeting_id)
+        .order_by(TranscriptSegment.start)
+        .all()
+    )
+    if not segments:
+        raise HTTPException(
+            status_code=400,
+            detail='Aucune transcription diarisée disponible pour cette réunion.',
+        )
+
+    llm_service = LLMService()
+    result = llm_service.classify_segments([str(seg.text) for seg in segments])
+    if result is None:
+        raise HTTPException(
+            status_code=502,
+            detail='Le service de classification est momentanément indisponible.',
+        )
+
+    classifications_by_index = {c.index: c for c in result.classifications}
+    for i, seg in enumerate(segments):
+        classification = classifications_by_index.get(i)
+        if classification is None:
+            continue
+        seg.tone = classification.tone
+        seg.theme = classification.theme
+        seg.urgency = classification.urgency
+
+    db.commit()
+
+    return SegmentClassificationResponse(
+        meeting_id=recording.id,
+        segments=[
+            SegmentClassificationOut(
+                id=seg.id,
+                speaker_name=seg.speaker,
+                text=seg.text,
+                start=seg.start,
+                tone=seg.tone,
+                theme=seg.theme,
+                urgency=seg.urgency,
+            )
+            for seg in segments
+        ],
+    )
+
+
+@router.get('/{meeting_id}/segments-classification', response_model=SegmentClassificationResponse)
+def get_segments_classification(
+    meeting_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    recording = (
+        db.query(Recording)
+        .filter(Recording.id == meeting_id, Recording.user_id == current_user.id)
+        .first()
+    )
+    if not recording:
+        raise HTTPException(status_code=404, detail='Réunion introuvable.')
+
+    segments = (
+        db.query(TranscriptSegment)
+        .filter(TranscriptSegment.recording_id == meeting_id)
+        .order_by(TranscriptSegment.start)
+        .all()
+    )
+    if not segments:
+        raise HTTPException(
+            status_code=404,
+            detail='Aucune diarisation disponible pour cette réunion.',
+        )
+
+    return SegmentClassificationResponse(
+        meeting_id=recording.id,
+        segments=[
+            SegmentClassificationOut(
+                id=seg.id,
+                speaker_name=seg.speaker,
+                text=seg.text,
+                start=seg.start,
+                tone=seg.tone,
+                theme=seg.theme,
+                urgency=seg.urgency,
+            )
             for seg in segments
         ],
     )
