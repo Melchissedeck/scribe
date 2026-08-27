@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../css/accueil.css">
+  <link rel="stylesheet" href="../css/historique.css">
 </head>
 <body>
   <div class="dash-shell">
@@ -95,6 +96,36 @@
             </div>
           </div>
 
+          <!-- Filtres -->
+          <div class="hist-filters">
+            <div class="hist-filter-row">
+              <div class="hist-search-wrap">
+                <span class="hist-search-icon">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                </span>
+                <input
+                  type="text"
+                  id="filter-search"
+                  class="hist-search"
+                  placeholder="Rechercher une réunion..."
+                  autocomplete="off"
+                >
+              </div>
+              <select id="filter-date" class="hist-select">
+                <option value="">Toutes les dates</option>
+                <option value="today">Aujourd'hui</option>
+                <option value="week">Cette semaine</option>
+                <option value="month">Ce mois-ci</option>
+              </select>
+            </div>
+            <div class="hist-pills">
+              <button class="hist-pill hist-pill--active" data-status="">Tous</button>
+              <button class="hist-pill" data-status="stopped">Terminées</button>
+              <button class="hist-pill" data-status="active">En cours</button>
+            </div>
+          </div>
+
+          <p id="results-count" class="hist-results-count" hidden></p>
           <div id="meeting-grid" class="session-grid"></div>
 
           <div id="empty-state" class="empty-state" hidden>
