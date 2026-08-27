@@ -5,6 +5,9 @@
 
 from unittest.mock import MagicMock, patch
 
+import pytest
+
+from app.exceptions import LLMError
 from app.schemas.llm_summary import ActionItem, StructuredSummary
 from app.services.llm_service import LLMService
 
@@ -52,10 +55,13 @@ def test_generate_structured_summary_parses_valid_json(mock_anthropic_cls):
 # Remplace l'ancien cas "JSON mal formé + retry" : depuis la migration vers
 # Anthropic, les structured outputs garantissent un JSON conforme au schéma
 # côté serveur, donc le seul cas d'échec possible aujourd'hui est un échec
-# de l'appel API lui-même (timeout, quota, erreur réseau...).
+# de l'appel API lui-même (timeout, quota, erreur réseau...). LLMService
+# traduit cet échec en LLMError typée (voir app/exceptions.py et le ticket
+# de gestion d'erreurs LLM) plutôt que de le faire planter ou de le
+# masquer silencieusement.
 
 @patch('app.services.llm_service.anthropic.Anthropic')
-def test_generate_structured_summary_returns_none_on_api_failure(mock_anthropic_cls):
+def test_generate_structured_summary_raises_llm_error_on_api_failure(mock_anthropic_cls):
     # Arrange : le client mocke lève une exception, comme le ferait le SDK
     # Anthropic en cas de timeout, de quota dépassé ou d'erreur serveur.
     mock_client = MagicMock()
@@ -64,11 +70,13 @@ def test_generate_structured_summary_returns_none_on_api_failure(mock_anthropic_
 
     service = LLMService()
 
-    # Act : ne doit PAS lever d'exception
-    result = service.generate_structured_summary(SAMPLE_TRANSCRIPTION)
+    # Act / Assert : l'exception brute du SDK n'est jamais propagée telle
+    # quelle - elle devient une LLMError typée et affichable à l'utilisateur.
+    with pytest.raises(LLMError) as exc_info:
+        service.generate_structured_summary(SAMPLE_TRANSCRIPTION)
 
-    # Assert : l'erreur est absorbée, l'application ne plante pas
-    assert result is None
+    assert exc_info.value.error_type == 'invalid_response'
+    assert exc_info.value.message
 
 
 # ── Transcription vide ────────────────────────────────────────────────────

@@ -198,6 +198,10 @@ def classify_segments(
     llm_service = LLMService()
     result = llm_service.classify_segments([str(seg.text) for seg in segments])
     if result is None:
+        # Ne peut se produire ici : classify_segments ne renvoie None que
+        # pour une liste de segments vide, déjà exclue par le contrôle
+        # plus haut. Un échec réel de l'appel API lève LLMError, gérée
+        # globalement (voir app/main.py). Ce garde-fou reste pour le typage.
         raise HTTPException(
             status_code=502,
             detail='Le service de classification est momentanément indisponible.',

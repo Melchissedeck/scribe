@@ -38,12 +38,6 @@ def generate_summary(
     llm_service = LLMService()
     summary = llm_service.generate_summary(recording.transcript)
 
-    if summary is None:
-        raise HTTPException(
-            status_code=502,
-            detail="Le service de génération de résumé est momentanément indisponible.",
-        )
-
     recording.summary = summary
     db.commit()
     db.refresh(recording)
