@@ -134,6 +134,13 @@ export function updateActionStatus(actionId, status) {
   });
 }
 
+export function updateActionDueDate(actionId, dueDate) {
+  return apiRequest(`/actions/${actionId}/due-date`, {
+    method: 'PATCH',
+    body: JSON.stringify({ due_date: dueDate || null }),
+  });
+}
+
 export function createDictaphoneRecording() {
   return apiRequest('/meetings', { method: 'POST' });
 }
