@@ -114,15 +114,19 @@ function renderMeta(details) {
   metaEl.textContent = `${date}${duration}${participantsTxt}`;
 }
 
+function renderMarkdown(el, text) {
+  el.innerHTML = window.marked ? window.marked.parse(text) : text.replace(/\n/g, '<br>');
+}
+
 async function renderSummary(details) {
   if (details.summary && details.summary.trim()) {
-    summaryEl.textContent = details.summary;
+    renderMarkdown(summaryEl, details.summary);
     return;
   }
   summaryEl.textContent = 'Génération du résumé en cours…';
   try {
     const result = await generateSummary(details.id);
-    summaryEl.textContent = result.summary;
+    renderMarkdown(summaryEl, result.summary);
   } catch (err) {
     if (err instanceof ApiError && err.status === 400) {
       summaryEl.textContent = 'Aucune transcription disponible pour générer un résumé.';
@@ -254,7 +258,7 @@ document.getElementById('btn-word').addEventListener('click', () => {
 });
 
 document.getElementById('btn-copy').addEventListener('click', () => {
-  const text = summaryEl.textContent;
+  const text = summaryEl.innerText;
   navigator.clipboard.writeText(text).then(() => {
     const btn = document.getElementById('btn-copy');
     const orig = btn.textContent;
