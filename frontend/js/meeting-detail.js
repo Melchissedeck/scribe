@@ -1,6 +1,6 @@
 import {
   getMeetingDetails, getSpeakingTime, generateSummary, extractActions,
-  updateMeetingTheme, updateActionStatus, ApiError,
+  updateMeetingTheme, updateActionStatus, exportMeetingPdf, ApiError,
 } from './api.js';
 
 if (!sessionStorage.getItem('access_token')) {
@@ -247,7 +247,30 @@ titleEl.addEventListener('blur', async () => {
 });
 
 // ── Action buttons ────────────────────────────────────────────────────────
-document.getElementById('btn-pdf').addEventListener('click', () => window.print());
+async function downloadPdf(button) {
+  const orig = button.textContent;
+  button.disabled = true;
+  button.textContent = 'Génération…';
+
+  try {
+    const { blob, filename } = await exportMeetingPdf(currentMeetingId);
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    alert(err instanceof ApiError ? err.message : 'Impossible de générer le PDF pour le moment.');
+  } finally {
+    button.disabled = false;
+    button.textContent = orig;
+  }
+}
+
+document.getElementById('btn-pdf').addEventListener('click', (e) => downloadPdf(e.currentTarget));
 
 document.getElementById('btn-word').addEventListener('click', () => {
   alert('Export Word bientôt disponible.');
@@ -271,7 +294,7 @@ document.getElementById('btn-share').addEventListener('click', () => {
   }
 });
 
-document.getElementById('btn-fab').addEventListener('click', () => window.print());
+document.getElementById('btn-fab').addEventListener('click', (e) => downloadPdf(e.currentTarget));
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 function buildColorMap(segments) {
