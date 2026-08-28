@@ -20,7 +20,7 @@ def _make_silence_wav(path: Path, duration_s: int, framerate: int = 8000) -> Non
 
 def test_transcribe_segments_recombines_chunks_with_correct_offsets(tmp_path):
     audio_path = tmp_path / "long.wav"
-    _make_silence_wav(audio_path, duration_s=25 * 60)  # 25 min -> 3 tranches (10/10/5)
+    _make_silence_wav(audio_path, duration_s=20 * 60)  # 20 min -> 3 tranches (8/8/4)
 
     fake_responses = [
         MagicMock(segments=[{"start": 0.0, "end": 5.0, "text": " Bonjour "}]),
@@ -37,8 +37,8 @@ def test_transcribe_segments_recombines_chunks_with_correct_offsets(tmp_path):
 
     assert segments == [
         {"start": 0.0, "end": 5.0, "text": "Bonjour"},
-        {"start": 601.0, "end": 606.0, "text": "ça va"},
-        {"start": 1202.0, "end": 1204.0, "text": "au revoir"},
+        {"start": 481.0, "end": 486.0, "text": "ça va"},
+        {"start": 962.0, "end": 964.0, "text": "au revoir"},
     ]
     assert mock_client.audio.transcriptions.create.call_count == 3
 
