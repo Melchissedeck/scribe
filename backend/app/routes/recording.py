@@ -12,6 +12,7 @@ from app.models.speaker import Speaker
 from app.models.transcript_segment import TranscriptSegment
 from app.models.user import User
 from app.schemas.recording import RecordingCreate, RecordingRead
+from app.services.action_extraction_service import run_action_extraction
 from app.services.summary_generation_service import run_summary_generation
 from vexa_agent import VexaAgent
 
@@ -123,6 +124,10 @@ def _fetch_final_transcript(recording_id: int, platform: str, native_meeting_id:
                 run_summary_generation(db, recording)
             except LLMError:
                 pass  # déjà loggué et le statut "failed" déjà enregistré
+            try:
+                run_action_extraction(db, recording)
+            except LLMError:
+                pass  # déjà loggué par LLMService
     except VexaConnectionError:
         logger.warning('Transcription Vexa indisponible pour la session %s', recording_id)
     except Exception as exc:

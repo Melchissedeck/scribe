@@ -9,8 +9,8 @@ from app.dependencies import get_current_user
 from app.models.recording import Recording
 from app.models.transcript_segment import TranscriptSegment
 from app.models.user import User
+from app.services.post_meeting_processing_service import run_post_meeting_processing
 from app.services.speaker_assignment_service import SpeakerAssignmentService
-from app.services.summary_generation_service import generate_summary_in_background
 from app.services.whisper_service import WhisperService
 
 router = APIRouter(
@@ -285,7 +285,7 @@ def diarize_audio(
             detail=f"Erreur lors de la diarisation : {exc}",
         ) from exc
 
-    background_tasks.add_task(generate_summary_in_background, recording.id)
+    background_tasks.add_task(run_post_meeting_processing, recording.id)
 
     return {
         "recording_id": recording.id,

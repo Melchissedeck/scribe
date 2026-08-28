@@ -1,13 +1,8 @@
-import logging
-
 from sqlalchemy.orm import Session
 
-from app.database import SessionLocal
 from app.exceptions import LLMError
 from app.models.recording import Recording
 from app.services.llm_service import LLMService
-
-logger = logging.getLogger(__name__)
 
 
 def run_summary_generation(db: Session, recording: Recording) -> None:
@@ -38,21 +33,3 @@ def run_summary_generation(db: Session, recording: Recording) -> None:
         raise
 
 
-def generate_summary_in_background(recording_id: int) -> None:
-    """
-    Variante pour BackgroundTasks : ouvre sa propre session DB (celle de
-    la requête d'origine est déjà fermée quand la tâche de fond s'exécute)
-    et absorbe LLMError - déjà logguée par LLMService, et il n'y a personne
-    côté HTTP pour la recevoir à ce stade.
-    """
-    db = SessionLocal()
-    try:
-        recording = db.query(Recording).filter(Recording.id == recording_id).first()
-        if not recording:
-            return
-        try:
-            run_summary_generation(db, recording)
-        except LLMError:
-            pass
-    finally:
-        db.close()
