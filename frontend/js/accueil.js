@@ -1,8 +1,13 @@
 import { getMeetings, getActions, ApiError } from './api.js';
 
+const PAGE_SIZE = 9;
+let currentPage = 1;
+let allMeetings = [];
+
 const meetingGrid = document.getElementById('meeting-grid');
 const emptyState = document.getElementById('empty-state');
 const errorState = document.getElementById('error-state');
+const paginationEl = document.getElementById('pagination');
 
 const filterTheme = document.getElementById('filter-theme');
 const filterDateFrom = document.getElementById('filter-date-from');
@@ -53,8 +58,9 @@ async function loadMeetings() {
   if (filterDateTo.value) filters.date_to = filterDateTo.value;
 
   try {
-    const meetings = await getMeetings(filters);
-    renderMeetings(meetings);
+    allMeetings = await getMeetings(filters);
+    currentPage = 1;
+    renderPage();
   } catch (err) {
     if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
       window.location.href = 'login.html';
@@ -64,15 +70,20 @@ async function loadMeetings() {
   }
 }
 
-function renderMeetings(meetings) {
+function renderPage() {
   meetingGrid.innerHTML = '';
 
-  if (meetings.length === 0) {
+  if (allMeetings.length === 0) {
     emptyState.hidden = false;
+    paginationEl.innerHTML = '';
     return;
   }
 
-  meetings.forEach((meeting) => {
+  const totalPages = Math.ceil(allMeetings.length / PAGE_SIZE);
+  const start = (currentPage - 1) * PAGE_SIZE;
+  const page = allMeetings.slice(start, start + PAGE_SIZE);
+
+  page.forEach((meeting) => {
     const card = document.createElement('div');
     card.className = 'card session-card';
     card.addEventListener('click', () => {
@@ -106,6 +117,34 @@ function renderMeetings(meetings) {
     });
 
     meetingGrid.appendChild(card);
+  });
+
+  renderPagination(totalPages);
+}
+
+function renderPagination(totalPages) {
+  if (totalPages <= 1) {
+    paginationEl.innerHTML = '';
+    return;
+  }
+
+  paginationEl.innerHTML = `
+    <button class="pagination-btn" id="pg-prev" ${currentPage === 1 ? 'disabled' : ''}>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+      Précédent
+    </button>
+    <span class="pagination-info">Page ${currentPage} / ${totalPages}</span>
+    <button class="pagination-btn" id="pg-next" ${currentPage === totalPages ? 'disabled' : ''}>
+      Suivant
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+    </button>
+  `;
+
+  document.getElementById('pg-prev').addEventListener('click', () => {
+    if (currentPage > 1) { currentPage--; renderPage(); window.scrollTo(0, 0); }
+  });
+  document.getElementById('pg-next').addEventListener('click', () => {
+    if (currentPage < totalPages) { currentPage++; renderPage(); window.scrollTo(0, 0); }
   });
 }
 
