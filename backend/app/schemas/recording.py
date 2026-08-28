@@ -46,6 +46,7 @@ class MeetingListItem(BaseModel):
     theme: str | None = None
     date: datetime
     status: str
+    summary_status: str
     summary_excerpt: str | None = None
     duration_minutes: float | None = None
 
@@ -82,6 +83,21 @@ class SpeakingTimeEntry(BaseModel):
 class SpeakingTimeResponse(BaseModel):
     meeting_id: int
     entries: list[SpeakingTimeEntry]
+
+
+class SegmentClassificationOut(BaseModel):
+    id: int
+    speaker_name: str
+    text: str
+    start: float
+    tone: str | None = None
+    theme: str | None = None
+    urgency: str | None = None
+
+
+class SegmentClassificationResponse(BaseModel):
+    meeting_id: int
+    segments: list[SegmentClassificationOut]
 
 
 class MeetingDetailResponse(BaseModel):

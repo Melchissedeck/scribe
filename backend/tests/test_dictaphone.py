@@ -20,7 +20,7 @@ def _make_silence_wav(path: Path, duration_s: int, framerate: int = 8000) -> Non
 
 def test_transcribe_segments_recombines_chunks_with_correct_offsets(tmp_path):
     audio_path = tmp_path / "long.wav"
-    _make_silence_wav(audio_path, duration_s=25 * 60)  # 25 min -> 3 tranches (10/10/5)
+    _make_silence_wav(audio_path, duration_s=20 * 60)  # 20 min -> 3 tranches (8/8/4)
 
     fake_responses = [
         MagicMock(segments=[{"start": 0.0, "end": 5.0, "text": " Bonjour "}]),
@@ -37,8 +37,8 @@ def test_transcribe_segments_recombines_chunks_with_correct_offsets(tmp_path):
 
     assert segments == [
         {"start": 0.0, "end": 5.0, "text": "Bonjour"},
-        {"start": 601.0, "end": 606.0, "text": "ça va"},
-        {"start": 1202.0, "end": 1204.0, "text": "au revoir"},
+        {"start": 481.0, "end": 486.0, "text": "ça va"},
+        {"start": 962.0, "end": 964.0, "text": "au revoir"},
     ]
     assert mock_client.audio.transcriptions.create.call_count == 3
 
@@ -94,13 +94,15 @@ def test_assign_speakers_picks_matching_diarization_segment():
     assert result[1]["speaker"] == "SPEAKER_01"
 
 
-def test_assign_speakers_returns_none_when_no_overlap():
+def test_assign_speakers_returns_fallback_when_no_overlap():
+    # TranscriptSegment.speaker est NOT NULL en base : un segment sans
+    # chevauchement doit recevoir une valeur de repli, jamais None.
     transcription_segments = [{"start": 100.0, "end": 105.0, "text": "..."}]
     diarization_segments = [{"start": 0.0, "end": 5.0, "speaker": "SPEAKER_00"}]
 
     result = SpeakerAssignmentService().assign_speakers(transcription_segments, diarization_segments)
 
-    assert result[0]["speaker"] is None
+    assert result[0]["speaker"] == SpeakerAssignmentService.UNKNOWN_SPEAKER
 
 
 def test_assign_speakers_picks_largest_overlap_on_chevauchement():

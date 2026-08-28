@@ -123,6 +123,14 @@ export function getOpenActions() {
   return apiRequest('/actions/open', { method: 'GET' });
 }
 
+export function getOverdueActions() {
+  return apiRequest('/actions/overdue', { method: 'GET' });
+}
+
+export function getDashboardTrends(granularity = 'day', periods = 8) {
+  return apiRequest(`/dashboard/trends?granularity=${granularity}&periods=${periods}`, { method: 'GET' });
+}
+
 export function getMeetingsCount() {
   return getMeetings().then((meetings) => meetings.length);
 }
@@ -159,6 +167,26 @@ export async function uploadAudioFile(recordingId, file) {
     throw new ApiError(data?.detail ?? 'Une erreur est survenue', response.status);
   }
   return data;
+}
+
+export async function exportMeetingPdf(meetingId) {
+  const token = sessionStorage.getItem('access_token');
+  const response = await fetch(`${API_BASE_URL}/meetings/${meetingId}/export-pdf`, {
+    method: 'GET',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => null);
+    throw new ApiError(data?.detail ?? 'Une erreur est survenue', response.status);
+  }
+
+  const blob = await response.blob();
+  const disposition = response.headers.get('Content-Disposition') || '';
+  const match = disposition.match(/filename="([^"]+)"/);
+  const filename = match ? match[1] : `compte-rendu-${meetingId}.pdf`;
+
+  return { blob, filename };
 }
 
 export function transcribeRecording(recordingId) {
