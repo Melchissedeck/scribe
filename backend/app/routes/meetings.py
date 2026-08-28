@@ -306,6 +306,8 @@ def get_meeting_details(
         id=recording.id,
         theme=recording.theme,
         status=recording.status,
+        platform=recording.platform,
+        diarization_status=recording.diarization_status,
         started_at=recording.started_at,
         stopped_at=recording.stopped_at,
         summary=recording.summary,
