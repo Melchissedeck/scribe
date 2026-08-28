@@ -10,11 +10,15 @@ RUN apt-get update \
 
 COPY requirements.txt .
 
-# Installe torch en version CPU-only avant le reste des dependances :
-# le wheel par defaut de PyPI embarque les librairies CUDA (plusieurs
-# centaines de Mo en plus, inutiles sans GPU), ce qui alourdit inutilement
-# l'image et la memoire consommee au chargement du pipeline pyannote.
-RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
+# Installe torch et torchaudio en version CPU-only avant le reste des
+# dependances : le wheel par defaut de PyPI embarque les librairies CUDA
+# (plusieurs centaines de Mo en plus, inutiles sans GPU), ce qui alourdit
+# inutilement l'image et la memoire consommee au chargement du pipeline
+# pyannote. torchaudio doit venir du meme index que torch : sinon pip
+# resout un wheel torchaudio depuis PyPI standard, compile pour un build
+# torch different de celui installe ici, et le .so natif de torchaudio
+# echoue a se charger au demarrage du pipeline (ABI incompatible).
+RUN pip install --no-cache-dir torch torchaudio --index-url https://download.pytorch.org/whl/cpu
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
