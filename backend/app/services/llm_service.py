@@ -81,10 +81,8 @@ class LLMService:
             return None
 
         prompt = (
-            "Voici la transcription d'un enregistrement audio. "
-            "Rédige un résumé clair et concis en texte libre, "
-            "en français, qui reprend les points essentiels.\n\n"
-            f"Transcription :\n{transcription}"
+            "Rédige un résumé clair et concis, en français, de cette "
+            f"transcription de réunion.\n\nTranscription :\n{transcription}"
         )
 
         try:
@@ -111,12 +109,14 @@ class LLMService:
             logger.warning("generate_structured_summary appelé avec une transcription vide.")
             return None
 
+        # Le schéma StructuredSummary (voir output_format ci-dessous) porte
+        # déjà les descriptions de chaque champ envoyées au modèle : pas
+        # besoin de les redire ici en prose, juste le comportement que le
+        # schéma ne couvre pas (langue, ne pas halluciner).
         system_prompt = (
-            "Tu es un assistant qui génère des comptes-rendus de réunion. "
-            "Extrait les thèmes abordés, les décisions prises et les "
-            "actions à réaliser. Si une information n'est pas mentionnée "
-            "dans la transcription, utilise une liste vide ou null. "
-            "N'invente jamais d'information."
+            "Analyse cette transcription de réunion selon le schéma "
+            "demandé. N'invente rien : liste vide ou null si une "
+            "information est absente."
         )
 
         try:
@@ -150,11 +150,8 @@ class LLMService:
             return None
 
         system_prompt = (
-            "Tu es un assistant qui analyse des transcriptions de réunion. "
-            "Pour CHAQUE segment numéroté ci-dessous, détermine son ton "
-            "dominant, son thème principal et son niveau d'urgence. "
-            "Réponds pour tous les segments, dans le même ordre, en "
-            "reprenant l'index exact de chaque segment."
+            "Classe chaque segment numéroté ci-dessous selon le schéma "
+            "demandé, dans le même ordre, en conservant son index exact."
         )
 
         numbered_segments = "\n".join(f"[{i}] {text}" for i, text in enumerate(segments))
