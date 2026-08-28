@@ -6,12 +6,13 @@ from sqlalchemy.orm import Session
 
 from app.database import SessionLocal, get_db
 from app.dependencies import get_current_user
-from app.exceptions import VexaConnectionError
+from app.exceptions import LLMError, VexaConnectionError
 from app.models.recording import Recording
 from app.models.speaker import Speaker
 from app.models.transcript_segment import TranscriptSegment
 from app.models.user import User
 from app.schemas.recording import RecordingCreate, RecordingRead
+from app.services.summary_generation_service import run_summary_generation
 from vexa_agent import VexaAgent
 
 logger = logging.getLogger(__name__)
@@ -118,6 +119,10 @@ def _fetch_final_transcript(recording_id: int, platform: str, native_meeting_id:
             recording.transcript = transcript
             _save_diarized_segments(db, recording_id, raw_segments)
             db.commit()
+            try:
+                run_summary_generation(db, recording)
+            except LLMError:
+                pass  # déjà loggué et le statut "failed" déjà enregistré
     except VexaConnectionError:
         logger.warning('Transcription Vexa indisponible pour la session %s', recording_id)
     except Exception as exc:

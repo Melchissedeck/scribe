@@ -46,6 +46,7 @@ class MeetingListItem(BaseModel):
     theme: str | None = None
     date: datetime
     status: str
+    summary_status: str
     summary_excerpt: str | None = None
     duration_minutes: float | None = None
 

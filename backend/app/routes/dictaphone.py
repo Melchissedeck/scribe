@@ -1,7 +1,7 @@
 import traceback
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, Request, UploadFile
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -10,6 +10,7 @@ from app.models.recording import Recording
 from app.models.transcript_segment import TranscriptSegment
 from app.models.user import User
 from app.services.speaker_assignment_service import SpeakerAssignmentService
+from app.services.summary_generation_service import generate_summary_in_background
 from app.services.whisper_service import WhisperService
 
 router = APIRouter(
@@ -181,6 +182,7 @@ def transcribe_audio(
 def diarize_audio(
     recording_id: int,
     request: Request,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -282,6 +284,8 @@ def diarize_audio(
             status_code=502,
             detail=f"Erreur lors de la diarisation : {exc}",
         ) from exc
+
+    background_tasks.add_task(generate_summary_in_background, recording.id)
 
     return {
         "recording_id": recording.id,

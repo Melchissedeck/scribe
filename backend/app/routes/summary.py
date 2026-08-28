@@ -6,7 +6,7 @@ from app.dependencies import get_current_user
 from app.models.recording import Recording
 from app.models.user import User
 from app.schemas.recording import SummaryResponse
-from app.services.llm_service import LLMService
+from app.services.summary_generation_service import run_summary_generation
 
 router = APIRouter(prefix='/meetings', tags=['summary'])
 
@@ -35,11 +35,7 @@ def generate_summary(
             detail="Aucune transcription disponible pour cette réunion.",
         )
 
-    llm_service = LLMService()
-    summary = llm_service.generate_summary(recording.transcript)
-
-    recording.summary = summary
-    db.commit()
+    run_summary_generation(db, recording)
     db.refresh(recording)
 
     return SummaryResponse(recording_id=recording.id, summary=recording.summary)
