@@ -294,6 +294,47 @@ button { font-family: inherit; cursor: pointer; }
   .dash-sidebar { width: 220px; }
 }
 
+/* ---------- Pagination ---------- */
+.pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin: 24px 0 8px;
+}
+
+.pagination-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: #fff;
+  border: 1px solid var(--scribe-border);
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--scribe-text);
+  cursor: pointer;
+  transition: border-color .15s, background .15s;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  border-color: var(--scribe-primary);
+  background: #EAF1FF;
+  color: var(--scribe-primary);
+}
+
+.pagination-btn:disabled {
+  opacity: 0.38;
+  cursor: default;
+}
+
+.pagination-info {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--scribe-text-muted);
+  font-family: var(--scribe-font-mono);
+}
 /* ---------- Overdue actions alert ---------- */
 .overdue-alert {
   padding: 18px 20px;
