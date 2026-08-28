@@ -1,14 +1,30 @@
+import logging
 import math
 import tempfile
+import time
+from collections.abc import Callable
 from pathlib import Path
+from typing import TypeVar
 
-from groq import Groq
+from groq import APIConnectionError, APITimeoutError, Groq, InternalServerError, RateLimitError
 from pydub import AudioSegment
 
 from app.config import settings
 
 if settings.ffmpeg_bin:
     AudioSegment.converter = str(Path(settings.ffmpeg_bin) / "ffmpeg")
+
+logger = logging.getLogger(__name__)
+
+T = TypeVar("T")
+
+# Erreurs transitoires (reseau, quota momentanement depasse, indisponibilite
+# temporaire du service) qui justifient une nouvelle tentative. Les autres
+# erreurs Groq (fichier invalide, cle API incorrecte...) ne sont jamais
+# resolues par un retry et sont propagees immediatement.
+_TRANSIENT_ERRORS = (RateLimitError, APIConnectionError, APITimeoutError, InternalServerError)
+_MAX_ATTEMPTS = 3
+_RETRY_BASE_DELAY_S = 1.0
 
 # Whisper (Groq) impose une limite de taille de fichier (413 au-dela).
 # Les tranches sont exportees en WAV mono 16 kHz 16 bits (format deja
@@ -57,37 +73,68 @@ class WhisperService:
             self._cleanup_chunks(chunks, audio_path)
 
     def _transcribe_chunk_text(self, chunk_path: Path) -> str:
-        with open(chunk_path, "rb") as audio_file:
-            transcription = self.client.audio.transcriptions.create(
-                file=audio_file,
-                model="whisper-large-v3-turbo",
-                response_format="text",
-            )
+        def call() -> str:
+            with open(chunk_path, "rb") as audio_file:
+                transcription = self.client.audio.transcriptions.create(
+                    file=audio_file,
+                    model="whisper-large-v3-turbo",
+                    response_format="text",
+                )
+            # Les stubs du SDK Groq typent .create() comme renvoyant toujours
+            # un objet Transcription, quel que soit response_format ; avec
+            # "text" il renvoie en realite directement une chaine.
+            return transcription  # type: ignore[return-value]
 
-        # Les stubs du SDK Groq typent .create() comme renvoyant toujours un
-        # objet Transcription, quel que soit response_format ; avec "text" il
-        # renvoie en realite directement une chaine.
-        return transcription  # type: ignore[return-value]
+        return self._call_with_retry(call)
 
     def _transcribe_chunk_segments(self, chunk_path: Path) -> list[dict]:
-        with open(chunk_path, "rb") as audio_file:
-            transcription = self.client.audio.transcriptions.create(
-                file=audio_file,
-                model="whisper-large-v3-turbo",
-                response_format="verbose_json",
-                timestamp_granularities=["segment"],
-            )
+        def call() -> list[dict]:
+            with open(chunk_path, "rb") as audio_file:
+                transcription = self.client.audio.transcriptions.create(
+                    file=audio_file,
+                    model="whisper-large-v3-turbo",
+                    response_format="verbose_json",
+                    timestamp_granularities=["segment"],
+                )
+            return [
+                {
+                    "start": segment["start"],
+                    "end": segment["end"],
+                    "text": segment["text"].strip(),
+                }
+                # Meme limitation de stub : la reponse verbose_json contient
+                # bien un champ "segments" que le type Transcription ne
+                # declare pas.
+                for segment in transcription.segments  # type: ignore[attr-defined]
+            ]
 
-        return [
-            {
-                "start": segment["start"],
-                "end": segment["end"],
-                "text": segment["text"].strip(),
-            }
-            # Meme limitation de stub : la reponse verbose_json contient bien
-            # un champ "segments" que le type Transcription ne declare pas.
-            for segment in transcription.segments  # type: ignore[attr-defined]
-        ]
+        return self._call_with_retry(call)
+
+    def _call_with_retry(self, call: Callable[[], T]) -> T:
+        """Execute `call`, avec reprise automatique sur erreur transitoire.
+
+        Reessaie jusqu'a `_MAX_ATTEMPTS` fois avec un delai exponentiel
+        (1s, 2s, 4s...) entre chaque tentative. Chaque tentative est
+        logguee ; l'echec definitif leve une RuntimeError avec un message
+        clair indiquant le nombre de tentatives effectuees.
+        """
+        last_exc: Exception | None = None
+
+        for attempt in range(1, _MAX_ATTEMPTS + 1):
+            try:
+                return call()
+            except _TRANSIENT_ERRORS as exc:
+                last_exc = exc
+                logger.warning(
+                    "Erreur transitoire Whisper (tentative %d/%d) : %s",
+                    attempt, _MAX_ATTEMPTS, exc,
+                )
+                if attempt < _MAX_ATTEMPTS:
+                    time.sleep(_RETRY_BASE_DELAY_S * (2 ** (attempt - 1)))
+
+        raise RuntimeError(
+            f"La transcription a échoué après {_MAX_ATTEMPTS} tentatives : {last_exc}"
+        ) from last_exc
 
     def _split_audio(self, audio_path: str) -> list[tuple[float, Path]]:
         """Decoupe le fichier en tranches de _CHUNK_DURATION_MS si necessaire.

@@ -2,11 +2,19 @@ import wave
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import httpx
 import pytest
+from groq import APIConnectionError
 from pydub import AudioSegment
 
 from app.services.speaker_assignment_service import SpeakerAssignmentService
 from app.services.whisper_service import WhisperService
+
+
+def _connection_error() -> APIConnectionError:
+    # APIConnectionError exige une requete httpx pour se construire ; le
+    # contenu n'importe pas ici, seul le type d'exception est teste.
+    return APIConnectionError(request=httpx.Request("POST", "https://api.groq.com/"))
 
 
 def _make_silence_wav(path: Path, duration_s: int, framerate: int = 8000) -> None:
@@ -146,6 +154,44 @@ def test_assign_speakers_picks_largest_overlap_on_chevauchement():
     result = SpeakerAssignmentService().assign_speakers(transcription_segments, diarization_segments)
 
     assert result[0]["speaker"] == "SPEAKER_01"
+
+
+# ── Reprise automatique sur erreur transitoire (US-68) ──────────────────────
+
+def test_transcribe_retries_on_transient_error_then_succeeds(tmp_path):
+    audio_path = tmp_path / "short.wav"
+    _make_silence_wav(audio_path, duration_s=5)
+
+    with patch("app.services.whisper_service.Groq") as mock_groq_cls, \
+            patch("app.services.whisper_service.time.sleep") as mock_sleep:
+        mock_client = MagicMock()
+        mock_client.audio.transcriptions.create.side_effect = [
+            _connection_error(),
+            "Bonjour, ceci est un test.",
+        ]
+        mock_groq_cls.return_value = mock_client
+
+        text = WhisperService().transcribe(str(audio_path))
+
+    assert text == "Bonjour, ceci est un test."
+    assert mock_client.audio.transcriptions.create.call_count == 2
+    mock_sleep.assert_called_once()
+
+
+def test_transcribe_raises_clear_error_after_max_attempts(tmp_path):
+    audio_path = tmp_path / "short.wav"
+    _make_silence_wav(audio_path, duration_s=5)
+
+    with patch("app.services.whisper_service.Groq") as mock_groq_cls, \
+            patch("app.services.whisper_service.time.sleep"):
+        mock_client = MagicMock()
+        mock_client.audio.transcriptions.create.side_effect = _connection_error()
+        mock_groq_cls.return_value = mock_client
+
+        with pytest.raises(RuntimeError, match="après 3 tentatives"):
+            WhisperService().transcribe(str(audio_path))
+
+    assert mock_client.audio.transcriptions.create.call_count == 3
 
 
 # ── Fichier audio vide ou corrompu ──────────────────────────────────────────
