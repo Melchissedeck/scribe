@@ -134,6 +134,22 @@
           </div>
 
           <div class="section-divider">
+            <span class="section-title">Tendance</span>
+            <div class="section-line"></div>
+          </div>
+
+          <div class="card chart-card viz-root trend-card">
+            <div class="chart-card-header">
+              <h3 class="chart-title">Réunions et actions cette semaine, par jour</h3>
+              <div class="chart-legend" id="trend-legend"></div>
+            </div>
+            <div class="chart-canvas-wrap trend-canvas-wrap">
+              <canvas id="chart-trend" role="img" aria-label="Nombre de réunions et d'actions par jour, du lundi au dimanche de la semaine en cours"></canvas>
+            </div>
+            <p class="chart-empty" id="trend-empty" hidden>Pas encore de réunion cette semaine.</p>
+          </div>
+
+          <div class="section-divider">
             <span class="section-title">Synthèse globale</span>
             <div class="section-line"></div>
           </div>
@@ -229,6 +245,7 @@
 
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
   <script type="module" src="../js/accueil.js"></script>
 </body>
 </html>
