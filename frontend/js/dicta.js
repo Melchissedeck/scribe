@@ -260,6 +260,35 @@ async function diarizeAudio(recordingId) {
   });
 }
 
+async function getDiarizeStatus(recordingId) {
+  return apiRequest(`/meetings/${recordingId}/diarize-status`, {
+    method: 'GET',
+  });
+}
+
+// La diarisation tourne en tâche de fond côté serveur (purement CPU, peut
+// prendre plusieurs minutes sur un enregistrement de plusieurs dizaines de
+// minutes) : on interroge périodiquement son statut plutôt que d'attendre
+// une seule requête, qui dépasserait le délai accepté par le proxy.
+const DIARIZE_POLL_INTERVAL_MS = 5000;
+const DIARIZE_POLL_TIMEOUT_MS = 20 * 60 * 1000;
+
+async function pollDiarizeStatus(recordingId) {
+  const deadline = Date.now() + DIARIZE_POLL_TIMEOUT_MS;
+
+  while (Date.now() < deadline) {
+    const result = await getDiarizeStatus(recordingId);
+
+    if (result.status === 'done' || result.status === 'failed') {
+      return result;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, DIARIZE_POLL_INTERVAL_MS));
+  }
+
+  throw new Error('La diarisation prend trop de temps.');
+}
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Temps de parole
@@ -383,7 +412,7 @@ function displaySpeakerSegments(segments) {
 
     const speakerElement = document.createElement('div');
     speakerElement.className = 'transcription-speaker';
-    speakerElement.textContent = segment.speaker || 'Intervenant';
+    speakerElement.textContent = segment.speaker_name || 'Intervenant';
 
     const textElement = document.createElement('div');
     textElement.className = 'transcription-text';
@@ -636,12 +665,20 @@ async function runTranscriptionPipeline(recordingId) {
   transcriptionContent.textContent =
     result.transcript || '(Aucune transcription disponible)';
 
-  // Tentative de diarisation
+  // Tentative de diarisation : lancée en tâche de fond côté serveur, on
+  // interroge son statut jusqu'à ce qu'elle aboutisse ou échoue.
   try {
-    transcriptionStatus.textContent = 'Identification des intervenants...';
+    transcriptionStatus.textContent =
+      'Identification des intervenants... (peut prendre plusieurs minutes sur un enregistrement long)';
 
-    const diarizationResult = await diarizeAudio(recordingId);
-    const displayed = displaySpeakerSegments(diarizationResult.segments);
+    await diarizeAudio(recordingId);
+    const statusResult = await pollDiarizeStatus(recordingId);
+
+    if (statusResult.status === 'failed') {
+      throw new Error('La diarisation a échoué côté serveur.');
+    }
+
+    const displayed = displaySpeakerSegments(statusResult.segments);
 
     if (displayed) {
       transcriptionStatus.textContent = 'Transcription terminée';
