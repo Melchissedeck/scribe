@@ -68,7 +68,7 @@ class SessionResult:
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
 
-async def login(client: httpx.AsyncClient, email: str, password: str) -> str | None:
+async def login(client: httpx.AsyncClient, email: str, password: str) -> tuple[str | None, float]:
     try:
         t0 = time.perf_counter()
         r = await client.post(f'{BASE_URL}/auth/login', json={'email': email, 'password': password})
