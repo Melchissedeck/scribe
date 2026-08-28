@@ -1,4 +1,4 @@
-import { getMeetings, getActions, ApiError } from './api.js';
+import { getMeetings, getActions, getOverdueActions, ApiError } from './api.js';
 
 const meetingGrid = document.getElementById('meeting-grid');
 const emptyState = document.getElementById('empty-state');
@@ -42,6 +42,7 @@ filterReset.addEventListener('click', () => {
 
 loadMeetings();
 loadStats();
+loadOverdueAlert();
 
 async function loadMeetings() {
   emptyState.hidden = true;
@@ -161,4 +162,64 @@ async function loadStats() {
     // sans bloquer le reste de la page (filtres et liste des réunions).
     console.error('Impossible de charger les statistiques du dashboard.', err);
   }
+}
+
+// ── Alerte actions en retard ─────────────────────────────────────────────
+async function loadOverdueAlert() {
+  const alertEl = document.getElementById('overdue-alert');
+  const titleEl = document.getElementById('overdue-alert-title');
+  const listEl = document.getElementById('overdue-list');
+
+  try {
+    const overdue = await getOverdueActions();
+
+    if (!overdue || overdue.length === 0) {
+      alertEl.hidden = true;
+      return;
+    }
+
+    titleEl.textContent = `${overdue.length} action${overdue.length > 1 ? 's' : ''} en retard`;
+
+    listEl.innerHTML = '';
+    overdue.forEach((action) => {
+      const item = document.createElement('li');
+      item.className = 'overdue-item';
+      item.addEventListener('click', () => {
+        window.location.href = `meeting-detail.html?id=${action.meeting_id}`;
+      });
+
+      const left = document.createElement('div');
+      const desc = document.createElement('div');
+      desc.className = 'overdue-item-desc';
+      desc.textContent = action.description;
+      const meta = document.createElement('div');
+      meta.className = 'overdue-item-meta';
+      meta.textContent = action.meeting_theme || 'Réunion sans titre';
+      left.appendChild(desc);
+      left.appendChild(meta);
+
+      const badge = document.createElement('span');
+      badge.className = 'overdue-item-badge';
+      badge.textContent = formatOverdueBadge(action.due_date);
+
+      item.appendChild(left);
+      item.appendChild(badge);
+      listEl.appendChild(item);
+    });
+
+    alertEl.hidden = false;
+  } catch (err) {
+    // Non bloquant : si l'appel échoue, on laisse simplement l'alerte masquée
+    // plutôt que de casser le reste du dashboard.
+    console.error('Impossible de charger les actions en retard.', err);
+  }
+}
+
+function formatOverdueBadge(dueDateIso) {
+  const dueDate = new Date(`${dueDateIso}T00:00:00`);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const days = Math.round((today - dueDate) / (1000 * 60 * 60 * 24));
+  if (days <= 0) return 'En retard';
+  return `${days} jour${days > 1 ? 's' : ''} de retard`;
 }

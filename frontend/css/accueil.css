@@ -292,3 +292,59 @@ button { font-family: inherit; cursor: pointer; }
   .session-grid { grid-template-columns: 1fr; }
   .dash-sidebar { width: 220px; }
 }
+
+/* ---------- Overdue actions alert ---------- */
+.overdue-alert {
+  padding: 18px 20px;
+  margin-bottom: 28px;
+  border: 1px solid #F5C6C2;
+  background: #FDF3F2;
+}
+
+.overdue-alert-header { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 12px; }
+
+.overdue-alert-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: #FBDEDB;
+  color: #D03B3B;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.overdue-alert-title { font-size: 14px; font-weight: 800; color: #A82A2A; margin-bottom: 2px; }
+.overdue-alert-subtitle { font-size: 12.5px; color: var(--scribe-text-muted); }
+
+.overdue-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+
+.overdue-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #fff;
+  border: 1px solid #F5C6C2;
+  cursor: pointer;
+  transition: border-color .15s ease;
+}
+.overdue-item:hover { border-color: #D03B3B; }
+
+.overdue-item-desc { font-size: 13px; font-weight: 600; color: var(--scribe-text); }
+.overdue-item-meta { font-size: 11.5px; color: var(--scribe-text-faint); font-family: var(--scribe-font-mono); }
+
+.overdue-item-badge {
+  flex-shrink: 0;
+  padding: 3px 9px;
+  border-radius: 6px;
+  font-size: 10.5px;
+  font-weight: 800;
+  font-family: var(--scribe-font-mono);
+  color: #A82A2A;
+  background: #FBDEDB;
+  white-space: nowrap;
+}
