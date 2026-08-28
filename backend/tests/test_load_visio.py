@@ -75,7 +75,7 @@ async def login(client: httpx.AsyncClient, email: str, password: str) -> str | N
         elapsed = (time.perf_counter() - t0) * 1000
         r.raise_for_status()
         return r.json().get('access_token'), elapsed
-    except Exception as exc:
+    except Exception:
         return None, 0.0
 
 
