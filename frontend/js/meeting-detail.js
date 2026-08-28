@@ -1,6 +1,6 @@
 import {
   getMeetingDetails, getSpeakingTime, generateSummary, extractActions,
-  updateMeetingTheme, updateActionStatus, ApiError,
+  updateMeetingTheme, updateActionStatus, exportDocx, exportPdf, ApiError,
 } from './api.js';
 
 if (!sessionStorage.getItem('access_token')) {
@@ -249,8 +249,20 @@ titleEl.addEventListener('blur', async () => {
 // ── Action buttons ────────────────────────────────────────────────────────
 document.getElementById('btn-pdf').addEventListener('click', () => window.print());
 
-document.getElementById('btn-word').addEventListener('click', () => {
-  alert('Export Word bientôt disponible.');
+document.getElementById('btn-word').addEventListener('click', async () => {
+  try {
+    const blob = await exportDocx(currentMeetingId);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `compte-rendu-${currentMeetingId}.docx`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch {
+    alert('Export Word indisponible pour le moment.');
+  }
 });
 
 document.getElementById('btn-copy').addEventListener('click', () => {
@@ -263,15 +275,62 @@ document.getElementById('btn-copy').addEventListener('click', () => {
   });
 });
 
-document.getElementById('btn-share').addEventListener('click', () => {
-  if (navigator.share) {
-    navigator.share({ title: 'Compte-rendu Scribe', url: window.location.href });
-  } else {
-    navigator.clipboard.writeText(window.location.href).then(() => alert('Lien copié dans le presse-papiers.'));
+document.getElementById('btn-share').addEventListener('click', (e) => {
+  e.stopPropagation();
+
+  const existing = document.getElementById('share-dropdown');
+  if (existing) { existing.remove(); return; }
+
+  const menu = document.createElement('div');
+  menu.id = 'share-dropdown';
+  menu.className = 'cr-share-dropdown';
+  menu.innerHTML = `
+    <button class="cr-share-item" id="share-pdf-btn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Partager le PDF
+    </button>
+  `;
+
+  const btn = e.currentTarget;
+  const rect = btn.getBoundingClientRect();
+  menu.style.top = `${rect.bottom + 6}px`;
+  menu.style.left = `${rect.left}px`;
+  document.body.appendChild(menu);
+
+  async function shareOrDownload(blob, fileName, mimeType) {
+    const file = new File([blob], fileName, { type: mimeType });
+    if (navigator.share && navigator.canShare?.({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], title: currentTheme || 'Compte-rendu Scribe' });
+        return;
+      } catch (err) {
+        if (err?.name === 'AbortError') return;
+      }
+    }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   }
+
+  document.getElementById('share-pdf-btn').addEventListener('click', async () => {
+    menu.remove();
+    try {
+      const blob = await exportPdf(currentMeetingId);
+      await shareOrDownload(blob, `compte-rendu-${currentMeetingId}.pdf`, 'application/pdf');
+    } catch (err) {
+      if (err?.name !== 'AbortError') alert('Export PDF indisponible pour le moment.');
+    }
+  });
+
+
+  document.addEventListener('click', () => document.getElementById('share-dropdown')?.remove(), { once: true });
 });
 
-document.getElementById('btn-fab').addEventListener('click', () => window.print());
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 function buildColorMap(segments) {

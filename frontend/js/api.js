@@ -169,4 +169,28 @@ export function deleteAccount() {
   return apiRequest('/users/me', { method: 'DELETE' });
 }
 
+export async function exportPdf(meetingId) {
+  const token = sessionStorage.getItem('access_token');
+  const response = await fetch(`${API_BASE_URL}/meetings/${meetingId}/export-pdf`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!response.ok) {
+    const data = await response.json().catch(() => null);
+    throw new ApiError(data?.detail ?? 'Export échoué', response.status);
+  }
+  return response.blob();
+}
+
+export async function exportDocx(meetingId) {
+  const token = sessionStorage.getItem('access_token');
+  const response = await fetch(`${API_BASE_URL}/meetings/${meetingId}/export-docx`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!response.ok) {
+    const data = await response.json().catch(() => null);
+    throw new ApiError(data?.detail ?? 'Export échoué', response.status);
+  }
+  return response.blob();
+}
+
 export { ApiError };
