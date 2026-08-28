@@ -54,6 +54,13 @@ class Recording(Base):
         nullable=True,
     )
 
+    # pending | generating | done | failed
+    summary_status = Column(
+        String(20),
+        nullable=False,
+        default="pending",
+    )
+
     decisions = Column(
         JSON,
         nullable=True,

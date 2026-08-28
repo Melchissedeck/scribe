@@ -123,6 +123,14 @@ export function getOpenActions() {
   return apiRequest('/actions/open', { method: 'GET' });
 }
 
+export function getOverdueActions() {
+  return apiRequest('/actions/overdue', { method: 'GET' });
+}
+
+export function getDashboardTrends(granularity = 'day', periods = 8) {
+  return apiRequest(`/dashboard/trends?granularity=${granularity}&periods=${periods}`, { method: 'GET' });
+}
+
 export function getMeetingsCount() {
   return getMeetings().then((meetings) => meetings.length);
 }

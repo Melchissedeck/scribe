@@ -66,6 +66,7 @@ def list_meetings(
             theme=recording.theme,
             date=recording.started_at,
             status=recording.status,
+            summary_status=recording.summary_status,
             summary_excerpt=_build_excerpt(recording.summary),
             duration_minutes=(
                 (recording.stopped_at - recording.started_at).total_seconds() / 60
