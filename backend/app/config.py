@@ -35,6 +35,14 @@ class Settings:
         "PYANNOTE_AUTH_TOKEN",
         "",
     )
+    # PyTorch detecte generalement le nombre de coeurs de la machine hote,
+    # pas le quota reellement alloue au conteneur (cgroup) : sur un
+    # hebergement comme Railway, ca fait tourner beaucoup plus de threads
+    # que de CPU disponibles, qui se contentionnent au lieu de travailler,
+    # ralentissant l'inference Pyannote de facon spectaculaire. 1 thread
+    # par defaut evite cette contention ; ajustable si le plan Railway
+    # alloue plus de vCPU.
+    torch_num_threads: int = int(os.getenv("TORCH_NUM_THREADS", "1"))
     ffmpeg_bin: str = os.getenv(
         "FFMPEG_BIN",
         "",

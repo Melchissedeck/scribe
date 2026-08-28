@@ -23,7 +23,21 @@ if sys.platform == "win32":
             os.add_dll_directory(str(ffmpeg_bin))
 
 
+import torch
 from pyannote.audio import Pipeline
+
+# Doit s'executer avant tout calcul parallele (set_num_interop_threads ne
+# peut etre appele qu'une seule fois par processus) : voir le commentaire
+# sur Settings.torch_num_threads pour le pourquoi. A ce stade (juste apres
+# l'import, avant toute instanciation de PyannoteService), aucune
+# inference n'a encore eu lieu.
+torch.set_num_threads(settings.torch_num_threads)
+try:
+    torch.set_num_interop_threads(settings.torch_num_threads)
+except RuntimeError:
+    # Deja configure par un import precedent de torch dans ce processus ;
+    # set_num_threads suffit dans ce cas.
+    pass
 
 
 class PyannoteService:
