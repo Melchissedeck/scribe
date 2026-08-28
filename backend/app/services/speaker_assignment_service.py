@@ -1,5 +1,12 @@
 class SpeakerAssignmentService:
 
+    # Utilise quand aucun segment de diarisation ne chevauche un segment
+    # de transcription (ex: bruit de fond transcrit hors de toute plage
+    # de parole detectee par Pyannote). La colonne TranscriptSegment.speaker
+    # est NOT NULL en base : un locuteur non identifie doit rester une
+    # valeur explicite, jamais None.
+    UNKNOWN_SPEAKER = "Inconnu"
+
     def assign_speakers(
         self,
         transcription_segments: list[dict],
@@ -41,7 +48,7 @@ class SpeakerAssignmentService:
             assigned_segments.append(
                 {
                     **transcription,
-                    "speaker": best_speaker,
+                    "speaker": best_speaker or self.UNKNOWN_SPEAKER,
                 }
             )
 
