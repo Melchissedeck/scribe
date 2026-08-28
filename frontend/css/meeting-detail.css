@@ -411,3 +411,69 @@
   background: #1D4ED8;
   transform: translateY(-1px);
 }
+
+/* ── Menu partage ────────────────────────────────────────────────────────── */
+.cr-share-dropdown {
+  position: fixed;
+  background: var(--color-surface, #fff);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  z-index: 200;
+  min-width: 200px;
+}
+
+.cr-share-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  border: none;
+  background: none;
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--font-primary);
+  color: var(--color-text);
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+}
+
+.cr-share-item:hover {
+  background: var(--color-background);
+}
+
+/* ── Impression PDF ───────────────────────────────────────────────────────── */
+@media print {
+  .cr-stepper,
+  .cr-header-top,
+  .cr-action-bar,
+  .cr-fab,
+  #cr-exchanges-card {
+    display: none !important;
+  }
+
+  body {
+    background: white;
+  }
+
+  .cr-page {
+    padding: 20px;
+    gap: 16px;
+  }
+
+  .card {
+    box-shadow: none;
+    border: 1px solid #e2e8f0;
+    break-inside: avoid;
+  }
+
+  .cr-title {
+    outline: none;
+  }
+}

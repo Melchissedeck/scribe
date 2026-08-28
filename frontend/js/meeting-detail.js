@@ -276,8 +276,20 @@ async function downloadPdf(button) {
 
 document.getElementById('btn-pdf').addEventListener('click', (e) => downloadPdf(e.currentTarget));
 
-document.getElementById('btn-word').addEventListener('click', () => {
-  alert('Export Word bientôt disponible.');
+document.getElementById('btn-word').addEventListener('click', async () => {
+  try {
+    const blob = await exportDocx(currentMeetingId);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `compte-rendu-${currentMeetingId}.docx`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch {
+    alert('Export Word indisponible pour le moment.');
+  }
 });
 
 document.getElementById('btn-copy').addEventListener('click', () => {
