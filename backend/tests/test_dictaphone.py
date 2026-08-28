@@ -94,13 +94,15 @@ def test_assign_speakers_picks_matching_diarization_segment():
     assert result[1]["speaker"] == "SPEAKER_01"
 
 
-def test_assign_speakers_returns_none_when_no_overlap():
+def test_assign_speakers_returns_fallback_when_no_overlap():
+    # TranscriptSegment.speaker est NOT NULL en base : un segment sans
+    # chevauchement doit recevoir une valeur de repli, jamais None.
     transcription_segments = [{"start": 100.0, "end": 105.0, "text": "..."}]
     diarization_segments = [{"start": 0.0, "end": 5.0, "speaker": "SPEAKER_00"}]
 
     result = SpeakerAssignmentService().assign_speakers(transcription_segments, diarization_segments)
 
-    assert result[0]["speaker"] is None
+    assert result[0]["speaker"] == SpeakerAssignmentService.UNKNOWN_SPEAKER
 
 
 def test_assign_speakers_picks_largest_overlap_on_chevauchement():
