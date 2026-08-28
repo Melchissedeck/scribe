@@ -181,6 +181,7 @@ button { font-family: inherit; cursor: pointer; }
 .badge { padding: 3px 9px; border-radius: 6px; font-size: 9.5px; font-weight: 800; letter-spacing: .06em; font-family: var(--scribe-font-mono); flex-shrink: 0; }
 .badge-done { background: rgba(37,99,235,.1); color: var(--scribe-primary); }
 .badge-active { background: rgba(22,163,74,.12); color: #16A34A; }
+.badge-failed { background: #FBDEDB; color: #A82A2A; }
 
 .session-desc { font-size: 13px; line-height: 1.6; color: var(--scribe-text-muted); margin-bottom: 16px; }
 

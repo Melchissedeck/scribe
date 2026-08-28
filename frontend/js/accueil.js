@@ -95,6 +95,7 @@ function renderMeetings(meetings) {
           <div class="session-title">${escape(meeting.theme || 'Réunion sans titre')}</div>
           <div class="session-date">${formatDate(meeting.date)}</div>
         </div>
+        ${summaryStatusBadge(meeting.summary_status)}
       </div>
       <p class="session-desc">${escape(meeting.summary_excerpt || 'Compte-rendu non encore disponible.')}</p>
       <div class="session-footer">
@@ -124,6 +125,13 @@ function escape(str) {
   const div = document.createElement('div');
   div.textContent = str;
   return div.innerHTML;
+}
+
+function summaryStatusBadge(status) {
+  if (status === 'generating') return '<span class="badge badge-active">En cours</span>';
+  if (status === 'done') return '<span class="badge badge-done">Terminé</span>';
+  if (status === 'failed') return '<span class="badge badge-failed">Échec</span>';
+  return '';
 }
 
 async function loadStats() {
