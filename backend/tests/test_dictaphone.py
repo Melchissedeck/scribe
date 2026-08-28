@@ -3,6 +3,7 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
+from pydub import AudioSegment
 
 from app.services.speaker_assignment_service import SpeakerAssignmentService
 from app.services.whisper_service import WhisperService
@@ -55,6 +56,34 @@ def test_transcribe_recombines_chunk_texts_in_order(tmp_path):
         text = WhisperService().transcribe(str(audio_path))
 
     assert text == "Bonjour. Au revoir."
+
+
+def test_split_audio_downsamples_chunks_to_16bit_even_when_source_is_32bit(tmp_path):
+    # ffmpeg decode un WebM/Opus reel (MediaRecorder du navigateur) en
+    # echantillons 32 bits par defaut. Sans un retour explicite a 16 bits,
+    # chaque tranche exportee fait le double de la taille attendue et peut
+    # depasser la limite de taille de Groq (413 Request Entity Too Large),
+    # meme en restant sous le seuil de decoupage en duree.
+    duration_s = 9 * 60  # > _CHUNK_DURATION_MS (8 min) -> decoupage en 2 tranches
+    frame_rate = 8000
+    sample_count = frame_rate * duration_s
+    fake_audio = AudioSegment(
+        data=b"\x00\x00\x00\x00" * sample_count,
+        sample_width=4,
+        frame_rate=frame_rate,
+        channels=1,
+    )
+
+    audio_path = tmp_path / "recording.webm"
+    audio_path.write_bytes(b"fake webm content")
+
+    with patch("app.services.whisper_service.AudioSegment.from_file", return_value=fake_audio):
+        chunks = WhisperService()._split_audio(str(audio_path))
+
+    assert len(chunks) == 2
+    for _, chunk_path in chunks:
+        with wave.open(str(chunk_path), "rb") as wav_file:
+            assert wav_file.getsampwidth() == 2
 
 
 def test_transcribe_segments_does_not_split_short_audio(tmp_path):
