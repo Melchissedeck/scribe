@@ -141,6 +141,10 @@ export function updateActionDueDate(actionId, dueDate) {
   });
 }
 
+export function deleteAction(actionId) {
+  return apiRequest(`/actions/${actionId}`, { method: 'DELETE' });
+}
+
 export function createDictaphoneRecording() {
   return apiRequest('/meetings', { method: 'POST' });
 }

@@ -1,4 +1,4 @@
-import { getActions, updateActionStatus, updateActionDueDate, ApiError } from './api.js';
+import { getActions, updateActionStatus, updateActionDueDate, deleteAction, ApiError } from './api.js';
 
 const today = new Date().toISOString().split('T')[0];
 
@@ -120,8 +120,13 @@ function buildCard(action) {
   if (overdue) card.classList.add('kanban-card--overdue');
 
   card.innerHTML = `
-    <div class="kanban-drag-handle" title="Déplacer">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="19" r="1"/></svg>
+    <div class="kanban-card-top">
+      <div class="kanban-drag-handle" title="Déplacer">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="19" r="1"/></svg>
+      </div>
+      <button class="kanban-delete-btn" title="Supprimer">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+      </button>
     </div>
     <p class="kanban-card-desc">${escapeHtml(action.description)}</p>
     <div class="kanban-card-footer">
@@ -145,6 +150,22 @@ function buildCard(action) {
 
   const dateInput = card.querySelector('.kanban-date-input');
   dateInput.addEventListener('change', () => handleDueDateChange(action.id, dateInput.value, dateInput));
+
+  card.querySelector('.kanban-delete-btn').addEventListener('click', async () => {
+    try {
+      await deleteAction(action.id);
+      card.remove();
+      updateCounts();
+      const total = document.querySelectorAll('.kanban-card').length;
+      emptyState.hidden = total > 0;
+    } catch (err) {
+      if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
+        window.location.href = 'login.html';
+        return;
+      }
+      alert('Impossible de supprimer cette action.');
+    }
+  });
 
   return card;
 }
