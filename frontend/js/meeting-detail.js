@@ -286,14 +286,6 @@ document.getElementById('btn-copy').addEventListener('click', () => {
   });
 });
 
-document.getElementById('btn-share').addEventListener('click', () => {
-  if (navigator.share) {
-    navigator.share({ title: 'Compte-rendu Scribe', url: window.location.href });
-  } else {
-    navigator.clipboard.writeText(window.location.href).then(() => alert('Lien copié dans le presse-papiers.'));
-  }
-});
-
 document.getElementById('btn-fab').addEventListener('click', (e) => downloadPdf(e.currentTarget));
 
 // ── Helpers ───────────────────────────────────────────────────────────────
