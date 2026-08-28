@@ -61,6 +61,13 @@ class Recording(Base):
         default="pending",
     )
 
+    # pending | processing | done | failed
+    diarization_status = Column(
+        String(20),
+        nullable=False,
+        default="pending",
+    )
+
     decisions = Column(
         JSON,
         nullable=True,

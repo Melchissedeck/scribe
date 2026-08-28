@@ -66,6 +66,12 @@ class DiarizedTranscriptResponse(BaseModel):
     segments: list[SegmentOut]
 
 
+class DiarizeStatusResponse(BaseModel):
+    recording_id: int
+    status: str
+    segments: list[SegmentOut]
+
+
 class SpeakerOut(BaseModel):
     id: int
     provisional_name: str
