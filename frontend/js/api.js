@@ -84,6 +84,10 @@ export function getMeetingDetails(meetingId) {
   return apiRequest(`/meetings/${meetingId}/details`, { method: 'GET' });
 }
 
+export function getDiarizeStatus(meetingId) {
+  return apiRequest(`/meetings/${meetingId}/diarize-status`, { method: 'GET' });
+}
+
 export function generateSummary(meetingId) {
   return apiRequest(`/meetings/${meetingId}/generate-summary`, { method: 'POST' });
 }

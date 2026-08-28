@@ -110,6 +110,8 @@ class MeetingDetailResponse(BaseModel):
     id: int
     theme: str | None = None
     status: str
+    platform: str
+    diarization_status: str
     started_at: datetime
     stopped_at: datetime | None = None
     summary: str | None = None

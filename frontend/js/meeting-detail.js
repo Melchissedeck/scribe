@@ -1,6 +1,6 @@
 import {
   getMeetingDetails, getSpeakingTime, generateSummary, extractActions,
-  updateMeetingTheme, updateActionStatus, exportMeetingPdf, ApiError,
+  updateMeetingTheme, updateActionStatus, exportMeetingPdf, getDiarizeStatus, ApiError,
 } from './api.js';
 
 if (!sessionStorage.getItem('access_token')) {
@@ -65,12 +65,45 @@ async function loadData() {
 
     renderMeta(d);
     await renderSummary(d);
-    renderExchanges(d.segments, st, d.started_at);
+    renderExchanges(d.segments, st, d.started_at, d.platform, d.diarization_status);
+
+    if (d.platform === 'dictaphone' && d.diarization_status === 'processing') {
+      pollDiarizationAndRefresh(d.id, d.started_at);
+    }
 
     const actions = await ensureActionsAndTheme(d);
     renderActions(actions);
   } catch (err) {
     summaryEl.textContent = 'Impossible de charger cette réunion.';
+  }
+}
+
+// La diarisation dictaphone tourne en tâche de fond côté serveur,
+// indépendamment de cette page : si elle est encore en cours au chargement
+// (l'utilisateur est revenu sur le compte-rendu avant la fin), on interroge
+// son statut jusqu'à ce qu'elle aboutisse, sans limite de temps, puis on
+// rafraîchit les échanges et le temps de parole.
+const DIARIZE_STATUS_POLL_INTERVAL_MS = 5000;
+
+async function pollDiarizationAndRefresh(meetingId, startedAt) {
+  while (true) {
+    await new Promise((resolve) => setTimeout(resolve, DIARIZE_STATUS_POLL_INTERVAL_MS));
+
+    let result;
+    try {
+      result = await getDiarizeStatus(meetingId);
+    } catch (err) {
+      return;
+    }
+
+    if (result.status === 'done' || result.status === 'failed') {
+      const speakingTime = result.status === 'done'
+        ? await getSpeakingTime(meetingId).catch(() => null)
+        : null;
+
+      renderExchanges(result.segments, speakingTime, startedAt, 'dictaphone', result.status);
+      return;
+    }
   }
 }
 
@@ -136,7 +169,7 @@ async function renderSummary(details) {
   }
 }
 
-function renderExchanges(segments, speakingTime, startedAt) {
+function renderExchanges(segments, speakingTime, startedAt, platform, diarizationStatus) {
   const speakerColorMap = buildColorMap(segments);
   const speakerCount = Object.keys(speakerColorMap).length;
 
@@ -147,7 +180,18 @@ function renderExchanges(segments, speakingTime, startedAt) {
   }
 
   if (!segments || segments.length === 0) {
-    segmentsEl.innerHTML = '<p style="color:var(--color-text-muted);font-size:13px;">Aucun échange capturé.</p>';
+    if (platform === 'dictaphone' && diarizationStatus === 'processing') {
+      segmentsEl.innerHTML =
+        '<p style="color:var(--color-text-muted);font-size:13px;">' +
+        'Diarisation en cours… cette page se mettra à jour automatiquement, ' +
+        'ou revenez plus tard.</p>';
+    } else if (platform === 'dictaphone' && diarizationStatus === 'failed') {
+      segmentsEl.innerHTML =
+        '<p style="color:var(--color-text-muted);font-size:13px;">' +
+        'La diarisation a échoué pour cet enregistrement.</p>';
+    } else {
+      segmentsEl.innerHTML = '<p style="color:var(--color-text-muted);font-size:13px;">Aucun échange capturé.</p>';
+    }
     return;
   }
 

@@ -266,17 +266,15 @@ async function getDiarizeStatus(recordingId) {
   });
 }
 
-// La diarisation tourne en tâche de fond côté serveur (purement CPU, peut
-// prendre plusieurs minutes sur un enregistrement de plusieurs dizaines de
-// minutes) : on interroge périodiquement son statut plutôt que d'attendre
-// une seule requête, qui dépasserait le délai accepté par le proxy.
+// La diarisation tourne en tâche de fond côté serveur, indépendamment de
+// cette page (purement CPU, peut prendre plusieurs dizaines de minutes sur
+// un enregistrement long avec les ressources disponibles) : on interroge
+// périodiquement son statut, sans limite de temps — le traitement continue
+// même si l'utilisateur quitte la page, inutile d'abandonner côté client.
 const DIARIZE_POLL_INTERVAL_MS = 5000;
-const DIARIZE_POLL_TIMEOUT_MS = 20 * 60 * 1000;
 
 async function pollDiarizeStatus(recordingId) {
-  const deadline = Date.now() + DIARIZE_POLL_TIMEOUT_MS;
-
-  while (Date.now() < deadline) {
+  while (true) {
     const result = await getDiarizeStatus(recordingId);
 
     if (result.status === 'done' || result.status === 'failed') {
@@ -285,8 +283,6 @@ async function pollDiarizeStatus(recordingId) {
 
     await new Promise((resolve) => setTimeout(resolve, DIARIZE_POLL_INTERVAL_MS));
   }
-
-  throw new Error('La diarisation prend trop de temps.');
 }
 
 
