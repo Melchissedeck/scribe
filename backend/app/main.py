@@ -10,6 +10,7 @@ from fastapi.responses import JSONResponse
 from app.config import settings
 from app.exceptions import (
     InvalidCredentialsError,
+    LLMError,
     TokenExpiredError,
     VexaConnectionError,
     VexaInvalidMeetingError,
@@ -19,6 +20,7 @@ from app.routes import (
     actions,
     admin,
     auth,
+    dashboard,
     dictaphone,
     meetings,
     recording,
@@ -115,6 +117,17 @@ def handle_vexa_connection_error(
     )
 
 
+@app.exception_handler(LLMError)
+def handle_llm_error(
+    request: Request,
+    exc: LLMError,
+) -> JSONResponse:
+    return JSONResponse(
+        status_code=503,
+        content={"detail": exc.message, "error_type": exc.error_type},
+    )
+
+
 app.include_router(auth.router)
 app.include_router(recording.router)
 app.include_router(dictaphone.router)
@@ -124,6 +137,7 @@ app.include_router(users.router)
 app.include_router(actions.router)
 app.include_router(action_status.router)
 app.include_router(admin.router)
+app.include_router(dashboard.router)
 
 @app.get("/health")
 def health_check() -> dict[str, str]:

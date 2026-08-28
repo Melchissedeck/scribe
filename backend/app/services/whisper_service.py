@@ -10,10 +10,20 @@ from app.config import settings
 if settings.ffmpeg_bin:
     AudioSegment.converter = str(Path(settings.ffmpeg_bin) / "ffmpeg")
 
-# Whisper (Groq) impose une limite de taille de fichier ; decouper les
-# fichiers longs en tranches de 10 minutes reste largement en dessous,
-# et borne le temps/la memoire de chaque appel.
-_CHUNK_DURATION_MS = 10 * 60 * 1000
+# Whisper (Groq) impose une limite de taille de fichier (413 au-dela).
+# Les tranches sont exportees en WAV mono 16 kHz 16 bits (format deja
+# attendu par Whisper, et par Pyannote ailleurs dans le pipeline) plutot
+# qu'a la frequence/nombre de canaux/largeur d'echantillon d'origine.
+# Important : ffmpeg decode l'audio source (WebM/Opus du MediaRecorder du
+# navigateur) en echantillons 32 bits par defaut ; set_channels() et
+# set_frame_rate() seuls ne changent pas cette largeur, ce qui double la
+# taille de fichier attendue (~29 Mo au lieu de ~15 Mo sur une tranche de
+# 8 minutes, au-dessus de la limite). set_sample_width(2) force le retour
+# a 16 bits. A 16 kHz mono 16 bits, 8 minutes restent confortablement sous
+# la limite (~15 Mo) tout en bornant le temps/la memoire de chaque appel.
+_CHUNK_DURATION_MS = 8 * 60 * 1000
+_TARGET_FRAME_RATE = 16000
+_TARGET_SAMPLE_WIDTH = 2
 
 
 class WhisperService:
@@ -109,7 +119,13 @@ class WhisperService:
             start_ms = index * _CHUNK_DURATION_MS
             end_ms = min(start_ms + _CHUNK_DURATION_MS, duration_ms)
             chunk_path = tmp_dir / f"chunk_{index}.wav"
-            audio[start_ms:end_ms].export(chunk_path, format="wav")
+            chunk = (
+                audio[start_ms:end_ms]
+                .set_channels(1)
+                .set_frame_rate(_TARGET_FRAME_RATE)
+                .set_sample_width(_TARGET_SAMPLE_WIDTH)
+            )
+            chunk.export(chunk_path, format="wav")
             chunks.append((start_ms / 1000, chunk_path))
 
         return chunks

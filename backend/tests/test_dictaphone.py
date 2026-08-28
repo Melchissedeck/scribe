@@ -3,6 +3,7 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
+from pydub import AudioSegment
 
 from app.services.speaker_assignment_service import SpeakerAssignmentService
 from app.services.whisper_service import WhisperService
@@ -20,7 +21,7 @@ def _make_silence_wav(path: Path, duration_s: int, framerate: int = 8000) -> Non
 
 def test_transcribe_segments_recombines_chunks_with_correct_offsets(tmp_path):
     audio_path = tmp_path / "long.wav"
-    _make_silence_wav(audio_path, duration_s=25 * 60)  # 25 min -> 3 tranches (10/10/5)
+    _make_silence_wav(audio_path, duration_s=20 * 60)  # 20 min -> 3 tranches (8/8/4)
 
     fake_responses = [
         MagicMock(segments=[{"start": 0.0, "end": 5.0, "text": " Bonjour "}]),
@@ -37,8 +38,8 @@ def test_transcribe_segments_recombines_chunks_with_correct_offsets(tmp_path):
 
     assert segments == [
         {"start": 0.0, "end": 5.0, "text": "Bonjour"},
-        {"start": 601.0, "end": 606.0, "text": "ça va"},
-        {"start": 1202.0, "end": 1204.0, "text": "au revoir"},
+        {"start": 481.0, "end": 486.0, "text": "ça va"},
+        {"start": 962.0, "end": 964.0, "text": "au revoir"},
     ]
     assert mock_client.audio.transcriptions.create.call_count == 3
 
@@ -55,6 +56,34 @@ def test_transcribe_recombines_chunk_texts_in_order(tmp_path):
         text = WhisperService().transcribe(str(audio_path))
 
     assert text == "Bonjour. Au revoir."
+
+
+def test_split_audio_downsamples_chunks_to_16bit_even_when_source_is_32bit(tmp_path):
+    # ffmpeg decode un WebM/Opus reel (MediaRecorder du navigateur) en
+    # echantillons 32 bits par defaut. Sans un retour explicite a 16 bits,
+    # chaque tranche exportee fait le double de la taille attendue et peut
+    # depasser la limite de taille de Groq (413 Request Entity Too Large),
+    # meme en restant sous le seuil de decoupage en duree.
+    duration_s = 9 * 60  # > _CHUNK_DURATION_MS (8 min) -> decoupage en 2 tranches
+    frame_rate = 8000
+    sample_count = frame_rate * duration_s
+    fake_audio = AudioSegment(
+        data=b"\x00\x00\x00\x00" * sample_count,
+        sample_width=4,
+        frame_rate=frame_rate,
+        channels=1,
+    )
+
+    audio_path = tmp_path / "recording.webm"
+    audio_path.write_bytes(b"fake webm content")
+
+    with patch("app.services.whisper_service.AudioSegment.from_file", return_value=fake_audio):
+        chunks = WhisperService()._split_audio(str(audio_path))
+
+    assert len(chunks) == 2
+    for _, chunk_path in chunks:
+        with wave.open(str(chunk_path), "rb") as wav_file:
+            assert wav_file.getsampwidth() == 2
 
 
 def test_transcribe_segments_does_not_split_short_audio(tmp_path):
@@ -94,13 +123,15 @@ def test_assign_speakers_picks_matching_diarization_segment():
     assert result[1]["speaker"] == "SPEAKER_01"
 
 
-def test_assign_speakers_returns_none_when_no_overlap():
+def test_assign_speakers_returns_fallback_when_no_overlap():
+    # TranscriptSegment.speaker est NOT NULL en base : un segment sans
+    # chevauchement doit recevoir une valeur de repli, jamais None.
     transcription_segments = [{"start": 100.0, "end": 105.0, "text": "..."}]
     diarization_segments = [{"start": 0.0, "end": 5.0, "speaker": "SPEAKER_00"}]
 
     result = SpeakerAssignmentService().assign_speakers(transcription_segments, diarization_segments)
 
-    assert result[0]["speaker"] is None
+    assert result[0]["speaker"] == SpeakerAssignmentService.UNKNOWN_SPEAKER
 
 
 def test_assign_speakers_picks_largest_overlap_on_chevauchement():

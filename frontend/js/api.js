@@ -84,6 +84,10 @@ export function getMeetingDetails(meetingId) {
   return apiRequest(`/meetings/${meetingId}/details`, { method: 'GET' });
 }
 
+export function getDiarizeStatus(meetingId) {
+  return apiRequest(`/meetings/${meetingId}/diarize-status`, { method: 'GET' });
+}
+
 export function generateSummary(meetingId) {
   return apiRequest(`/meetings/${meetingId}/generate-summary`, { method: 'POST' });
 }
@@ -121,6 +125,14 @@ export function getActions(status = null) {
 
 export function getOpenActions() {
   return apiRequest('/actions/open', { method: 'GET' });
+}
+
+export function getOverdueActions() {
+  return apiRequest('/actions/overdue', { method: 'GET' });
+}
+
+export function getDashboardTrends(granularity = 'day', periods = 8) {
+  return apiRequest(`/dashboard/trends?granularity=${granularity}&periods=${periods}`, { method: 'GET' });
 }
 
 export function getMeetingsCount() {
@@ -165,12 +177,56 @@ export async function uploadAudioFile(recordingId, file) {
   return data;
 }
 
+export async function exportMeetingPdf(meetingId) {
+  const token = sessionStorage.getItem('access_token');
+  const response = await fetch(`${API_BASE_URL}/meetings/${meetingId}/export-pdf`, {
+    method: 'GET',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => null);
+    throw new ApiError(data?.detail ?? 'Une erreur est survenue', response.status);
+  }
+
+  const blob = await response.blob();
+  const disposition = response.headers.get('Content-Disposition') || '';
+  const match = disposition.match(/filename="([^"]+)"/);
+  const filename = match ? match[1] : `compte-rendu-${meetingId}.pdf`;
+
+  return { blob, filename };
+}
+
 export function transcribeRecording(recordingId) {
   return apiRequest(`/meetings/${recordingId}/transcribe`, { method: 'POST' });
 }
 
 export function deleteAccount() {
   return apiRequest('/users/me', { method: 'DELETE' });
+}
+
+export async function exportPdf(meetingId) {
+  const token = sessionStorage.getItem('access_token');
+  const response = await fetch(`${API_BASE_URL}/meetings/${meetingId}/export-pdf`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!response.ok) {
+    const data = await response.json().catch(() => null);
+    throw new ApiError(data?.detail ?? 'Export échoué', response.status);
+  }
+  return response.blob();
+}
+
+export async function exportDocx(meetingId) {
+  const token = sessionStorage.getItem('access_token');
+  const response = await fetch(`${API_BASE_URL}/meetings/${meetingId}/export-docx`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!response.ok) {
+    const data = await response.json().catch(() => null);
+    throw new ApiError(data?.detail ?? 'Export échoué', response.status);
+  }
+  return response.blob();
 }
 
 export { ApiError };

@@ -81,7 +81,8 @@
   justify-content: center;
   color: var(--scribe-text-faint);
   cursor: grab;
-  padding: 2px 4px;
+  padding: 2px 0;
+  margin-bottom: 2px;
 }
 
 .kanban-drag-handle:active {
@@ -194,32 +195,4 @@
   .kanban-board {
     grid-template-columns: 1fr;
   }
-}
-
-.kanban-card-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 4px;
-}
-
-.kanban-delete-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 26px;
-  border: 1px solid var(--scribe-border);
-  background: var(--scribe-bg);
-  color: var(--scribe-text-muted);
-  border-radius: 7px;
-  cursor: pointer;
-  transition: background .15s, color .15s, border-color .15s;
-  flex-shrink: 0;
-}
-
-.kanban-delete-btn:hover {
-  background: #FEF2F2;
-  border-color: #FECACA;
-  color: var(--scribe-error);
 }

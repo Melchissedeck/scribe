@@ -35,6 +35,20 @@ def _start_session(client, headers, mock_agent):
     return resp
 
 
+def _mock_anthropic_client():
+    # stop_recording() déclenche la génération automatique du résumé en
+    # tâche de fond une fois la transcription récupérée : sans ce mock,
+    # ces tests feraient un vrai appel réseau à l'API Anthropic.
+    fake_block = MagicMock()
+    fake_block.type = 'text'
+    fake_block.text = 'Résumé de test.'
+    fake_response = MagicMock()
+    fake_response.content = [fake_block]
+    mock_client = MagicMock()
+    mock_client.messages.create.return_value = fake_response
+    return mock_client
+
+
 # ── Démarrage ─────────────────────────────────────────────────────────────
 
 def test_start_recording_returns_active_session(client):
@@ -96,9 +110,11 @@ def test_start_recording_requires_auth(client):
 )
 def test_stop_recording_sets_status_stopped(client):
     headers = _auth_headers(client)
-    with patch('app.routes.recording.VexaAgent') as mock_cls:
+    with patch('app.routes.recording.VexaAgent') as mock_cls, \
+            patch('app.services.llm_service.anthropic.Anthropic') as mock_anthropic_cls:
         mock_agent = MagicMock()
         mock_cls.return_value = mock_agent
+        mock_anthropic_cls.return_value = _mock_anthropic_client()
 
         recording_id = _start_session(client, headers, mock_agent).json()['id']
         resp = client.post(f'/recording/{recording_id}/stop', headers=headers)
@@ -117,9 +133,11 @@ def test_stop_recording_returns_404_for_unknown_id(client):
 
 def test_stop_recording_returns_400_if_already_stopped(client):
     headers = _auth_headers(client)
-    with patch('app.routes.recording.VexaAgent') as mock_cls:
+    with patch('app.routes.recording.VexaAgent') as mock_cls, \
+            patch('app.services.llm_service.anthropic.Anthropic') as mock_anthropic_cls:
         mock_agent = MagicMock()
         mock_cls.return_value = mock_agent
+        mock_anthropic_cls.return_value = _mock_anthropic_client()
 
         recording_id = _start_session(client, headers, mock_agent).json()['id']
         client.post(f'/recording/{recording_id}/stop', headers=headers)

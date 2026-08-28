@@ -46,6 +46,7 @@ class MeetingListItem(BaseModel):
     theme: str | None = None
     date: datetime
     status: str
+    summary_status: str
     summary_excerpt: str | None = None
     duration_minutes: float | None = None
 
@@ -62,6 +63,12 @@ class SegmentOut(BaseModel):
 
 class DiarizedTranscriptResponse(BaseModel):
     meeting_id: int
+    segments: list[SegmentOut]
+
+
+class DiarizeStatusResponse(BaseModel):
+    recording_id: int
+    status: str
     segments: list[SegmentOut]
 
 
@@ -84,10 +91,27 @@ class SpeakingTimeResponse(BaseModel):
     entries: list[SpeakingTimeEntry]
 
 
+class SegmentClassificationOut(BaseModel):
+    id: int
+    speaker_name: str
+    text: str
+    start: float
+    tone: str | None = None
+    theme: str | None = None
+    urgency: str | None = None
+
+
+class SegmentClassificationResponse(BaseModel):
+    meeting_id: int
+    segments: list[SegmentClassificationOut]
+
+
 class MeetingDetailResponse(BaseModel):
     id: int
     theme: str | None = None
     status: str
+    platform: str
+    diarization_status: str
     started_at: datetime
     stopped_at: datetime | None = None
     summary: str | None = None

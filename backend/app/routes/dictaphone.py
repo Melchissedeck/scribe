@@ -1,14 +1,16 @@
 import traceback
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Depends, FastAPI, File, HTTPException, Request, UploadFile
 from sqlalchemy.orm import Session
 
-from app.database import get_db
+from app.database import SessionLocal, get_db
 from app.dependencies import get_current_user
 from app.models.recording import Recording
 from app.models.transcript_segment import TranscriptSegment
 from app.models.user import User
+from app.schemas.recording import DiarizeStatusResponse, SegmentOut
+from app.services.post_meeting_processing_service import run_post_meeting_processing
 from app.services.speaker_assignment_service import SpeakerAssignmentService
 from app.services.whisper_service import WhisperService
 
@@ -177,10 +179,84 @@ def transcribe_audio(
     }
 
 
-@router.post("/{recording_id}/diarize")
+def run_diarization(app: FastAPI, recording_id: int, audio_path: str) -> None:
+    """
+    Transcrit avec horodatage puis diarise avec Pyannote, en tâche de
+    fond : ce traitement est purement CPU (pas de GPU sur l'hébergement) et
+    peut prendre plusieurs minutes sur un enregistrement de plusieurs
+    dizaines de minutes, largement au-delà du délai qu'accepte une requête
+    HTTP synchrone (le proxy coupe la connexion avant la fin, sans que rien
+    ne soit jamais enregistré). Ouvre sa propre session DB (utilisé depuis
+    BackgroundTasks, où la session de la requête d'origine est déjà
+    fermée).
+    """
+    db = SessionLocal()
+    try:
+        recording = db.query(Recording).filter(Recording.id == recording_id).first()
+        if not recording:
+            return
+
+        try:
+            # 1. Transcription avec les timestamps de chaque segment
+            whisper_service = WhisperService()
+            transcription_segments = whisper_service.transcribe_segments(audio_path)
+
+            # 2. Diarisation avec Pyannote
+            # Import différé : évite de charger torch/pyannote au démarrage
+            # de l'application, seulement lors de la première diarisation.
+            from app.services.pyannote_service import get_pyannote_service
+
+            pyannote_service = get_pyannote_service(app)
+            diarization_segments = pyannote_service.diarize(audio_path)
+
+            # 3. Association des segments Whisper avec les speakers Pyannote
+            assignment_service = SpeakerAssignmentService()
+            assigned_segments = assignment_service.assign_speakers(
+                transcription_segments,
+                diarization_segments,
+            )
+
+            # 4. Suppression des anciens segments du recording
+            db.query(TranscriptSegment).filter(
+                TranscriptSegment.recording_id == recording.id
+            ).delete(synchronize_session=False)
+
+            # 5. Enregistrement des nouveaux segments en base
+            for segment in assigned_segments:
+                db.add(TranscriptSegment(
+                    recording_id=recording.id,
+                    start=segment["start"],
+                    end=segment["end"],
+                    text=segment["text"],
+                    speaker=segment["speaker"],
+                ))
+
+            recording.diarization_status = "done"
+            db.commit()
+
+        except Exception:
+            db.rollback()
+
+            # Affiche le traceback complet dans le terminal Uvicorn
+            # pendant la phase de diagnostic.
+            traceback.print_exc()
+
+            recording = db.query(Recording).filter(Recording.id == recording_id).first()
+            if recording:
+                recording.diarization_status = "failed"
+                db.commit()
+            return
+    finally:
+        db.close()
+
+    run_post_meeting_processing(recording_id)
+
+
+@router.post("/{recording_id}/diarize", status_code=202)
 def diarize_audio(
     recording_id: int,
     request: Request,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -222,68 +298,53 @@ def diarize_audio(
 
     audio_path = audio_files[0]
 
-    try:
-        # 1. Transcription avec les timestamps de chaque segment
-        whisper_service = WhisperService()
+    recording.diarization_status = "processing"
+    db.commit()
 
-        transcription_segments = (
-            whisper_service.transcribe_segments(str(audio_path))
-        )
-
-        # 2. Diarisation avec Pyannote
-        # Import différé : évite de charger torch/pyannote au démarrage de
-        # l'application, seulement lors de la première diarisation.
-        from app.services.pyannote_service import get_pyannote_service
-
-        pyannote_service = get_pyannote_service(request.app)
-
-        diarization_segments = (
-            pyannote_service.diarize(str(audio_path))
-        )
-
-        # 3. Association des segments Whisper avec les speakers Pyannote
-        assignment_service = SpeakerAssignmentService()
-
-        assigned_segments = assignment_service.assign_speakers(
-            transcription_segments,
-            diarization_segments,
-        )
-
-        # 4. Suppression des anciens segments du recording
-        db.query(TranscriptSegment).filter(
-            TranscriptSegment.recording_id == recording.id
-        ).delete(
-            synchronize_session=False
-        )
-
-        # 5. Enregistrement des nouveaux segments en base
-        for segment in assigned_segments:
-            transcript_segment = TranscriptSegment(
-                recording_id=recording.id,
-                start=segment["start"],
-                end=segment["end"],
-                text=segment["text"],
-                speaker=segment["speaker"],
-            )
-
-            db.add(transcript_segment)
-
-        # 6. Validation de la transaction
-        db.commit()
-
-    except Exception as exc:
-        db.rollback()
-
-        # Affiche le traceback complet dans le terminal Uvicorn
-        # pendant la phase de diagnostic.
-        traceback.print_exc()
-
-        raise HTTPException(
-            status_code=502,
-            detail=f"Erreur lors de la diarisation : {exc}",
-        ) from exc
+    background_tasks.add_task(run_diarization, request.app, recording.id, str(audio_path))
 
     return {
         "recording_id": recording.id,
-        "segments": assigned_segments,
+        "status": recording.diarization_status,
     }
+
+
+@router.get("/{recording_id}/diarize-status", response_model=DiarizeStatusResponse)
+def get_diarize_status(
+    recording_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    recording = (
+        db.query(Recording)
+        .filter(
+            Recording.id == recording_id,
+            Recording.user_id == current_user.id,
+        )
+        .first()
+    )
+
+    if not recording:
+        raise HTTPException(
+            status_code=404,
+            detail="Enregistrement introuvable.",
+        )
+
+    segments = []
+    if recording.diarization_status == "done":
+        transcript_segments = (
+            db.query(TranscriptSegment)
+            .filter(TranscriptSegment.recording_id == recording.id)
+            .order_by(TranscriptSegment.start)
+            .all()
+        )
+        segments = [
+            SegmentOut(speaker_name=seg.speaker, text=seg.text, start=seg.start)
+            for seg in transcript_segments
+        ]
+
+    return DiarizeStatusResponse(
+        recording_id=recording.id,
+        status=recording.diarization_status,
+        segments=segments,
+    )

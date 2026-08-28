@@ -1,6 +1,6 @@
 import {
   getMeetingDetails, getSpeakingTime, generateSummary, extractActions,
-  updateMeetingTheme, updateActionStatus, ApiError,
+  updateMeetingTheme, updateActionStatus, exportMeetingPdf, getDiarizeStatus, ApiError,
 } from './api.js';
 
 if (!sessionStorage.getItem('access_token')) {
@@ -65,12 +65,45 @@ async function loadData() {
 
     renderMeta(d);
     await renderSummary(d);
-    renderExchanges(d.segments, st, d.started_at);
+    renderExchanges(d.segments, st, d.started_at, d.platform, d.diarization_status);
+
+    if (d.platform === 'dictaphone' && d.diarization_status === 'processing') {
+      pollDiarizationAndRefresh(d.id, d.started_at);
+    }
 
     const actions = await ensureActionsAndTheme(d);
     renderActions(actions);
   } catch (err) {
     summaryEl.textContent = 'Impossible de charger cette réunion.';
+  }
+}
+
+// La diarisation dictaphone tourne en tâche de fond côté serveur,
+// indépendamment de cette page : si elle est encore en cours au chargement
+// (l'utilisateur est revenu sur le compte-rendu avant la fin), on interroge
+// son statut jusqu'à ce qu'elle aboutisse, sans limite de temps, puis on
+// rafraîchit les échanges et le temps de parole.
+const DIARIZE_STATUS_POLL_INTERVAL_MS = 5000;
+
+async function pollDiarizationAndRefresh(meetingId, startedAt) {
+  while (true) {
+    await new Promise((resolve) => setTimeout(resolve, DIARIZE_STATUS_POLL_INTERVAL_MS));
+
+    let result;
+    try {
+      result = await getDiarizeStatus(meetingId);
+    } catch (err) {
+      return;
+    }
+
+    if (result.status === 'done' || result.status === 'failed') {
+      const speakingTime = result.status === 'done'
+        ? await getSpeakingTime(meetingId).catch(() => null)
+        : null;
+
+      renderExchanges(result.segments, speakingTime, startedAt, 'dictaphone', result.status);
+      return;
+    }
   }
 }
 
@@ -114,15 +147,19 @@ function renderMeta(details) {
   metaEl.textContent = `${date}${duration}${participantsTxt}`;
 }
 
+function renderMarkdown(el, text) {
+  el.innerHTML = window.marked ? window.marked.parse(text) : text.replace(/\n/g, '<br>');
+}
+
 async function renderSummary(details) {
   if (details.summary && details.summary.trim()) {
-    summaryEl.textContent = details.summary;
+    renderMarkdown(summaryEl, details.summary);
     return;
   }
   summaryEl.textContent = 'Génération du résumé en cours…';
   try {
     const result = await generateSummary(details.id);
-    summaryEl.textContent = result.summary;
+    renderMarkdown(summaryEl, result.summary);
   } catch (err) {
     if (err instanceof ApiError && err.status === 400) {
       summaryEl.textContent = 'Aucune transcription disponible pour générer un résumé.';
@@ -132,7 +169,7 @@ async function renderSummary(details) {
   }
 }
 
-function renderExchanges(segments, speakingTime, startedAt) {
+function renderExchanges(segments, speakingTime, startedAt, platform, diarizationStatus) {
   const speakerColorMap = buildColorMap(segments);
   const speakerCount = Object.keys(speakerColorMap).length;
 
@@ -143,7 +180,18 @@ function renderExchanges(segments, speakingTime, startedAt) {
   }
 
   if (!segments || segments.length === 0) {
-    segmentsEl.innerHTML = '<p style="color:var(--color-text-muted);font-size:13px;">Aucun échange capturé.</p>';
+    if (platform === 'dictaphone' && diarizationStatus === 'processing') {
+      segmentsEl.innerHTML =
+        '<p style="color:var(--color-text-muted);font-size:13px;">' +
+        'Diarisation en cours… cette page se mettra à jour automatiquement, ' +
+        'ou revenez plus tard.</p>';
+    } else if (platform === 'dictaphone' && diarizationStatus === 'failed') {
+      segmentsEl.innerHTML =
+        '<p style="color:var(--color-text-muted);font-size:13px;">' +
+        'La diarisation a échoué pour cet enregistrement.</p>';
+    } else {
+      segmentsEl.innerHTML = '<p style="color:var(--color-text-muted);font-size:13px;">Aucun échange capturé.</p>';
+    }
     return;
   }
 
@@ -247,14 +295,49 @@ titleEl.addEventListener('blur', async () => {
 });
 
 // ── Action buttons ────────────────────────────────────────────────────────
-document.getElementById('btn-pdf').addEventListener('click', () => window.print());
+async function downloadPdf(button) {
+  const orig = button.textContent;
+  button.disabled = true;
+  button.textContent = 'Génération…';
 
-document.getElementById('btn-word').addEventListener('click', () => {
-  alert('Export Word bientôt disponible.');
+  try {
+    const { blob, filename } = await exportMeetingPdf(currentMeetingId);
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    alert(err instanceof ApiError ? err.message : 'Impossible de générer le PDF pour le moment.');
+  } finally {
+    button.disabled = false;
+    button.textContent = orig;
+  }
+}
+
+document.getElementById('btn-pdf').addEventListener('click', (e) => downloadPdf(e.currentTarget));
+
+document.getElementById('btn-word').addEventListener('click', async () => {
+  try {
+    const blob = await exportDocx(currentMeetingId);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `compte-rendu-${currentMeetingId}.docx`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch {
+    alert('Export Word indisponible pour le moment.');
+  }
 });
 
 document.getElementById('btn-copy').addEventListener('click', () => {
-  const text = summaryEl.textContent;
+  const text = summaryEl.innerText;
   navigator.clipboard.writeText(text).then(() => {
     const btn = document.getElementById('btn-copy');
     const orig = btn.textContent;
@@ -263,15 +346,7 @@ document.getElementById('btn-copy').addEventListener('click', () => {
   });
 });
 
-document.getElementById('btn-share').addEventListener('click', () => {
-  if (navigator.share) {
-    navigator.share({ title: 'Compte-rendu Scribe', url: window.location.href });
-  } else {
-    navigator.clipboard.writeText(window.location.href).then(() => alert('Lien copié dans le presse-papiers.'));
-  }
-});
-
-document.getElementById('btn-fab').addEventListener('click', () => window.print());
+document.getElementById('btn-fab').addEventListener('click', (e) => downloadPdf(e.currentTarget));
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 function buildColorMap(segments) {
