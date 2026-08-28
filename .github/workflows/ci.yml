@@ -24,9 +24,12 @@ jobs:
 
       # Torch CPU-only : evite le telechargement des librairies CUDA du
       # wheel par defaut, inutiles sans GPU et nettement plus volumineux
-      # (meme optimisation que backend/Dockerfile).
+      # (meme optimisation que backend/Dockerfile). torchaudio et
+      # torchcodec doivent venir du meme index que torch, sinon pip
+      # resout des wheels incompatibles (ABI pour torchaudio, CUDA pour
+      # torchcodec) avec le build torch installe ici.
       - name: Install CPU-only torch
-        run: pip install torch --index-url https://download.pytorch.org/whl/cpu
+        run: pip install torch torchaudio torchcodec --index-url https://download.pytorch.org/whl/cpu
 
       - name: Install dependencies
         run: pip install -r requirements.txt

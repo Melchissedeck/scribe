@@ -1,6 +1,6 @@
 import {
   getMeetingDetails, getSpeakingTime, generateSummary, extractActions,
-  updateMeetingTheme, updateActionStatus, exportDocx, exportPdf, ApiError,
+  updateMeetingTheme, updateActionStatus, exportMeetingPdf, ApiError,
 } from './api.js';
 
 if (!sessionStorage.getItem('access_token')) {
@@ -114,15 +114,19 @@ function renderMeta(details) {
   metaEl.textContent = `${date}${duration}${participantsTxt}`;
 }
 
+function renderMarkdown(el, text) {
+  el.innerHTML = window.marked ? window.marked.parse(text) : text.replace(/\n/g, '<br>');
+}
+
 async function renderSummary(details) {
   if (details.summary && details.summary.trim()) {
-    summaryEl.textContent = details.summary;
+    renderMarkdown(summaryEl, details.summary);
     return;
   }
   summaryEl.textContent = 'Génération du résumé en cours…';
   try {
     const result = await generateSummary(details.id);
-    summaryEl.textContent = result.summary;
+    renderMarkdown(summaryEl, result.summary);
   } catch (err) {
     if (err instanceof ApiError && err.status === 400) {
       summaryEl.textContent = 'Aucune transcription disponible pour générer un résumé.';
@@ -247,7 +251,30 @@ titleEl.addEventListener('blur', async () => {
 });
 
 // ── Action buttons ────────────────────────────────────────────────────────
-document.getElementById('btn-pdf').addEventListener('click', () => window.print());
+async function downloadPdf(button) {
+  const orig = button.textContent;
+  button.disabled = true;
+  button.textContent = 'Génération…';
+
+  try {
+    const { blob, filename } = await exportMeetingPdf(currentMeetingId);
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    alert(err instanceof ApiError ? err.message : 'Impossible de générer le PDF pour le moment.');
+  } finally {
+    button.disabled = false;
+    button.textContent = orig;
+  }
+}
+
+document.getElementById('btn-pdf').addEventListener('click', (e) => downloadPdf(e.currentTarget));
 
 document.getElementById('btn-word').addEventListener('click', async () => {
   try {
@@ -266,7 +293,7 @@ document.getElementById('btn-word').addEventListener('click', async () => {
 });
 
 document.getElementById('btn-copy').addEventListener('click', () => {
-  const text = summaryEl.textContent;
+  const text = summaryEl.innerText;
   navigator.clipboard.writeText(text).then(() => {
     const btn = document.getElementById('btn-copy');
     const orig = btn.textContent;
@@ -275,62 +302,7 @@ document.getElementById('btn-copy').addEventListener('click', () => {
   });
 });
 
-document.getElementById('btn-share').addEventListener('click', (e) => {
-  e.stopPropagation();
-
-  const existing = document.getElementById('share-dropdown');
-  if (existing) { existing.remove(); return; }
-
-  const menu = document.createElement('div');
-  menu.id = 'share-dropdown';
-  menu.className = 'cr-share-dropdown';
-  menu.innerHTML = `
-    <button class="cr-share-item" id="share-pdf-btn">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-      Partager le PDF
-    </button>
-  `;
-
-  const btn = e.currentTarget;
-  const rect = btn.getBoundingClientRect();
-  menu.style.top = `${rect.bottom + 6}px`;
-  menu.style.left = `${rect.left}px`;
-  document.body.appendChild(menu);
-
-  async function shareOrDownload(blob, fileName, mimeType) {
-    const file = new File([blob], fileName, { type: mimeType });
-    if (navigator.share && navigator.canShare?.({ files: [file] })) {
-      try {
-        await navigator.share({ files: [file], title: currentTheme || 'Compte-rendu Scribe' });
-        return;
-      } catch (err) {
-        if (err?.name === 'AbortError') return;
-      }
-    }
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = fileName;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }
-
-  document.getElementById('share-pdf-btn').addEventListener('click', async () => {
-    menu.remove();
-    try {
-      const blob = await exportPdf(currentMeetingId);
-      await shareOrDownload(blob, `compte-rendu-${currentMeetingId}.pdf`, 'application/pdf');
-    } catch (err) {
-      if (err?.name !== 'AbortError') alert('Export PDF indisponible pour le moment.');
-    }
-  });
-
-
-  document.addEventListener('click', () => document.getElementById('share-dropdown')?.remove(), { once: true });
-});
-
+document.getElementById('btn-fab').addEventListener('click', (e) => downloadPdf(e.currentTarget));
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 function buildColorMap(segments) {

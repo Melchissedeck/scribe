@@ -1,4 +1,4 @@
-import { getMeetings, getActions, ApiError } from './api.js';
+import { getMeetings, getActions, getOverdueActions, getDashboardTrends, ApiError } from './api.js';
 
 const PAGE_SIZE = 9;
 let currentPage = 1;
@@ -47,6 +47,8 @@ filterReset.addEventListener('click', () => {
 
 loadMeetings();
 loadStats();
+loadOverdueAlert();
+loadTrendChart();
 
 async function loadMeetings() {
   emptyState.hidden = true;
@@ -104,6 +106,7 @@ function renderPage() {
           <div class="session-title">${escape(meeting.theme || 'Réunion sans titre')}</div>
           <div class="session-date">${formatDate(meeting.date)}</div>
         </div>
+        ${summaryStatusBadge(meeting.summary_status)}
       </div>
       <p class="session-desc">${escape(meeting.summary_excerpt || 'Compte-rendu non encore disponible.')}</p>
       <div class="session-footer">
@@ -163,6 +166,13 @@ function escape(str) {
   return div.innerHTML;
 }
 
+function summaryStatusBadge(status) {
+  if (status === 'generating') return '<span class="badge badge-active">En cours</span>';
+  if (status === 'done') return '<span class="badge badge-done">Terminé</span>';
+  if (status === 'failed') return '<span class="badge badge-failed">Échec</span>';
+  return '';
+}
+
 async function loadStats() {
   try {
     const [meetings, allActions] = await Promise.all([
@@ -200,4 +210,197 @@ async function loadStats() {
     // sans bloquer le reste de la page (filtres et liste des réunions).
     console.error('Impossible de charger les statistiques du dashboard.', err);
   }
+}
+
+// ── Alerte actions en retard ─────────────────────────────────────────────
+async function loadOverdueAlert() {
+  const alertEl = document.getElementById('overdue-alert');
+  const titleEl = document.getElementById('overdue-alert-title');
+  const listEl = document.getElementById('overdue-list');
+
+  try {
+    const overdue = await getOverdueActions();
+
+    if (!overdue || overdue.length === 0) {
+      alertEl.hidden = true;
+      return;
+    }
+
+    titleEl.textContent = `${overdue.length} action${overdue.length > 1 ? 's' : ''} en retard`;
+
+    listEl.innerHTML = '';
+    overdue.forEach((action) => {
+      const item = document.createElement('li');
+      item.className = 'overdue-item';
+      item.addEventListener('click', () => {
+        window.location.href = `meeting-detail.html?id=${action.meeting_id}`;
+      });
+
+      const left = document.createElement('div');
+      const desc = document.createElement('div');
+      desc.className = 'overdue-item-desc';
+      desc.textContent = action.description;
+      const meta = document.createElement('div');
+      meta.className = 'overdue-item-meta';
+      meta.textContent = action.meeting_theme || 'Réunion sans titre';
+      left.appendChild(desc);
+      left.appendChild(meta);
+
+      const badge = document.createElement('span');
+      badge.className = 'overdue-item-badge';
+      badge.textContent = formatOverdueBadge(action.due_date);
+
+      item.appendChild(left);
+      item.appendChild(badge);
+      listEl.appendChild(item);
+    });
+
+    alertEl.hidden = false;
+  } catch (err) {
+    // Non bloquant : si l'appel échoue, on laisse simplement l'alerte masquée
+    // plutôt que de casser le reste du dashboard.
+    console.error('Impossible de charger les actions en retard.', err);
+  }
+}
+
+function formatOverdueBadge(dueDateIso) {
+  const dueDate = new Date(`${dueDateIso}T00:00:00`);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const days = Math.round((today - dueDate) / (1000 * 60 * 60 * 24));
+  if (days <= 0) return 'En retard';
+  return `${days} jour${days > 1 ? 's' : ''} de retard`;
+}
+
+// ── Graphe de tendance ────────────────────────────────────────────────────
+function vizColor(name) {
+  return getComputedStyle(document.querySelector('.viz-root')).getPropertyValue(name).trim();
+}
+
+async function loadTrendChart() {
+  const canvas = document.getElementById('chart-trend');
+  const wrap = canvas.closest('.chart-canvas-wrap');
+  const emptyEl = document.getElementById('trend-empty');
+  const legendEl = document.getElementById('trend-legend');
+
+  try {
+    const { points } = await getDashboardTrends('day');
+
+    const hasData = points.some((p) => p.meetings_count > 0 || p.actions_count > 0);
+    if (!hasData) {
+      wrap.hidden = true;
+      emptyEl.hidden = false;
+      return;
+    }
+
+    const series1 = vizColor('--viz-series-1');
+    const series2 = vizColor('--viz-series-2');
+    const gridColor = vizColor('--viz-grid');
+    const mutedColor = vizColor('--viz-muted');
+    const inkColor = vizColor('--viz-ink-2');
+
+    const todayIso = new Date().toISOString().slice(0, 10);
+    const currentIndex = points.findIndex((p) => p.period_start === todayIso);
+    const labels = points.map((p, i) => formatDayLabel(p.period_start) + (i === currentIndex ? " (aujourd'hui)" : ''));
+    const fullLabels = points.map((p, i) => formatDayFull(p.period_start) + (i === currentIndex ? " — aujourd'hui" : ''));
+    const pointRadii = points.map((_, i) => (i === currentIndex ? 6 : 4));
+
+    // eslint-disable-next-line no-undef
+    new Chart(canvas, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'Réunions',
+            data: points.map((p) => p.meetings_count),
+            borderColor: series1,
+            backgroundColor: series1,
+            pointBackgroundColor: series1,
+            pointBorderColor: '#fff',
+            pointBorderWidth: 2,
+            pointRadius: pointRadii,
+            pointHoverRadius: 7,
+            borderWidth: 2,
+            tension: 0.15,
+          },
+          {
+            label: 'Actions',
+            data: points.map((p) => p.actions_count),
+            borderColor: series2,
+            backgroundColor: series2,
+            pointBackgroundColor: series2,
+            pointBorderColor: '#fff',
+            pointBorderWidth: 2,
+            pointRadius: pointRadii,
+            pointHoverRadius: 7,
+            borderWidth: 2,
+            tension: 0.15,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#0b0b0b',
+            padding: 10,
+            cornerRadius: 6,
+            callbacks: {
+              title: (items) => fullLabels[items[0].dataIndex],
+              label: (ctx) => `${ctx.parsed.y} · ${ctx.dataset.label}`,
+            },
+          },
+        },
+        scales: {
+          x: {
+            ticks: {
+              color: (ctx) => (ctx.index === currentIndex ? inkColor : mutedColor),
+              font: (ctx) => ({ size: 11, weight: ctx.index === currentIndex ? '700' : '400' }),
+            },
+            grid: { display: false },
+            border: { display: false },
+          },
+          y: {
+            beginAtZero: true,
+            ticks: { precision: 0, color: mutedColor, font: { size: 11 } },
+            grid: { color: gridColor },
+            border: { display: false },
+          },
+        },
+      },
+    });
+
+    legendEl.innerHTML = '';
+    [['Réunions', series1], ['Actions', series2]].forEach(([label, color]) => {
+      const item = document.createElement('span');
+      item.className = 'chart-legend-item';
+      const swatch = document.createElement('span');
+      swatch.className = 'chart-legend-swatch';
+      swatch.style.background = color;
+      const text = document.createElement('span');
+      text.textContent = label;
+      item.appendChild(swatch);
+      item.appendChild(text);
+      legendEl.appendChild(item);
+    });
+  } catch (err) {
+    console.error('Impossible de charger la tendance du dashboard.', err);
+    wrap.hidden = true;
+    emptyEl.hidden = false;
+  }
+}
+
+function formatDayLabel(isoDate) {
+  const date = new Date(`${isoDate}T00:00:00`);
+  return date.toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit' });
+}
+
+function formatDayFull(isoDate) {
+  const date = new Date(`${isoDate}T00:00:00`);
+  const label = date.toLocaleDateString('fr-FR', { weekday: 'long', day: '2-digit', month: 'long' });
+  return label.charAt(0).toUpperCase() + label.slice(1);
 }

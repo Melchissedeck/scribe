@@ -1,3 +1,4 @@
+from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
@@ -7,7 +8,7 @@ from app.dependencies import get_current_user
 from app.models.action import Action
 from app.models.recording import Recording
 from app.models.user import User
-from app.schemas.action import ActionDueDateUpdate, ActionResponse, ActionStatusUpdate
+from app.schemas.action import ActionDueDateUpdate, ActionResponse, ActionStatusUpdate, OverdueActionOut
 
 router = APIRouter(prefix='/actions', tags=['actions'])
 
@@ -62,6 +63,37 @@ def list_open_actions(
         )
         for a in actions
     ]
+
+@router.get('/overdue', response_model=list[OverdueActionOut])
+def list_overdue_actions(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    actions = (
+        db.query(Action)
+        .join(Recording, Action.recording_id == Recording.id)
+        .filter(
+            Recording.user_id == current_user.id,
+            Action.status != 'done',
+            Action.due_date.isnot(None),
+            Action.due_date < date.today(),
+        )
+        .order_by(Action.due_date.asc())
+        .all()
+    )
+
+    return [
+        OverdueActionOut(
+            id=action.id,
+            description=action.description,
+            status=action.status,
+            due_date=action.due_date,
+            meeting_id=action.recording_id,
+            meeting_theme=action.recording.theme,
+        )
+        for action in actions
+    ]
+
 
 @router.patch('/{action_id}', response_model=ActionResponse)
 def update_action_status(

@@ -10,10 +10,16 @@ from app.config import settings
 if settings.ffmpeg_bin:
     AudioSegment.converter = str(Path(settings.ffmpeg_bin) / "ffmpeg")
 
-# Whisper (Groq) impose une limite de taille de fichier ; decouper les
-# fichiers longs en tranches de 10 minutes reste largement en dessous,
-# et borne le temps/la memoire de chaque appel.
-_CHUNK_DURATION_MS = 10 * 60 * 1000
+# Whisper (Groq) impose une limite de taille de fichier (413 au-dela).
+# Les tranches sont exportees en WAV mono 16 kHz (frequence deja attendue
+# par Whisper, et par Pyannote ailleurs dans le pipeline) plutot qu'a la
+# frequence/nombre de canaux d'origine : un WAV stereo 44.1 kHz de 10
+# minutes peut depasser 100 Mo, largement au-dessus de la limite, meme
+# en restant sous le seuil de decoupage. A 16 kHz mono, 8 minutes restent
+# confortablement sous la limite (~15 Mo) tout en bornant le temps/la
+# memoire de chaque appel.
+_CHUNK_DURATION_MS = 8 * 60 * 1000
+_TARGET_FRAME_RATE = 16000
 
 
 class WhisperService:
@@ -109,7 +115,8 @@ class WhisperService:
             start_ms = index * _CHUNK_DURATION_MS
             end_ms = min(start_ms + _CHUNK_DURATION_MS, duration_ms)
             chunk_path = tmp_dir / f"chunk_{index}.wav"
-            audio[start_ms:end_ms].export(chunk_path, format="wav")
+            chunk = audio[start_ms:end_ms].set_channels(1).set_frame_rate(_TARGET_FRAME_RATE)
+            chunk.export(chunk_path, format="wav")
             chunks.append((start_ms / 1000, chunk_path))
 
         return chunks

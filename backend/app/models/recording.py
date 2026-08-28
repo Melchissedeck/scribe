@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import JSON, Column, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import relationship
 
 from app.database import Base
@@ -51,6 +51,18 @@ class Recording(Base):
 
     summary = Column(
         Text,
+        nullable=True,
+    )
+
+    # pending | generating | done | failed
+    summary_status = Column(
+        String(20),
+        nullable=False,
+        default="pending",
+    )
+
+    decisions = Column(
+        JSON,
         nullable=True,
     )
 

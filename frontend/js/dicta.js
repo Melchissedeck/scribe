@@ -618,6 +618,12 @@ async function handleRecordingStop() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function runTranscriptionPipeline(recordingId) {
+  // Reste désactivé tant que la diarisation n'est pas terminée (succès ou
+  // échec) : sinon un clic prématuré ouvre le compte-rendu avant que les
+  // segments diarisés soient enregistrés en base (aucune erreur visible,
+  // juste "0 locuteur" côté meeting-detail.html).
+  viewReportButton.disabled = true;
+
   transcriptionStatus.textContent = 'Transcription en cours...';
 
   const result = await transcribeAudio(recordingId);
@@ -660,6 +666,9 @@ async function runTranscriptionPipeline(recordingId) {
     transcriptionSegments.classList.add('visio-hidden');
     transcriptionContent.classList.remove('visio-hidden');
     transcriptionStatus.textContent = 'Transcription terminée';
+
+  } finally {
+    viewReportButton.disabled = false;
   }
 }
 

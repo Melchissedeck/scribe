@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../css/accueil.css">
+  <link rel="stylesheet" href="../css/actions.css">
 </head>
 <body>
   <div class="dash-shell">
@@ -94,14 +95,32 @@
           </div>
 
 
-         <div style="margin-bottom:16px;">
-            <label style="display:flex; align-items:center; gap:8px; cursor:pointer; color:var(--scribe-text-secondary);">
-              <input type="checkbox" id="show-completed">
-              Afficher aussi les actions terminées
-            </label>
+          <div class="kanban-board">
+            <div class="kanban-col">
+              <div class="kanban-col-header">
+                <span class="kanban-dot kanban-dot--todo"></span>
+                <span class="kanban-col-title">À faire</span>
+                <span class="kanban-col-count" id="count-todo">0</span>
+              </div>
+              <div class="kanban-col-body" id="list-todo"></div>
+            </div>
+            <div class="kanban-col">
+              <div class="kanban-col-header">
+                <span class="kanban-dot kanban-dot--progress"></span>
+                <span class="kanban-col-title">En cours</span>
+                <span class="kanban-col-count" id="count-in_progress">0</span>
+              </div>
+              <div class="kanban-col-body" id="list-in_progress"></div>
+            </div>
+            <div class="kanban-col">
+              <div class="kanban-col-header">
+                <span class="kanban-dot kanban-dot--done"></span>
+                <span class="kanban-col-title">Terminée</span>
+                <span class="kanban-col-count" id="count-done">0</span>
+              </div>
+              <div class="kanban-col-body" id="list-done"></div>
+            </div>
           </div>
-
-          <div id="action-list" class="session-grid"></div>
 
           <div id="empty-state" class="empty-state" hidden>
             <strong>Aucune action trouvée</strong>
@@ -118,6 +137,7 @@
 
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
   <script type="module" src="../js/actions.js"></script>
 </body>
 </html>

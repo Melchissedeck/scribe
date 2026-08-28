@@ -1,10 +1,11 @@
 from datetime import date, datetime, time
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy.orm import Session, selectinload
 
 from app.database import get_db
 from app.dependencies import get_current_user
+from app.models.action import Action
 from app.models.recording import Recording
 from app.models.transcript_segment import TranscriptSegment
 from app.models.user import User
@@ -13,6 +14,8 @@ from app.schemas.recording import (
     DiarizedTranscriptResponse,
     MeetingDetailResponse,
     MeetingListItem,
+    SegmentClassificationOut,
+    SegmentClassificationResponse,
     SegmentOut,
     SpeakerOut,
     SpeakingTimeEntry,
@@ -20,6 +23,8 @@ from app.schemas.recording import (
     ThemeResponse,
     ThemeUpdate,
 )
+from app.services.llm_service import LLMService
+from pdf_export_service import PDFExportService
 
 router = APIRouter(prefix='/meetings', tags=['meetings'])
 
@@ -61,6 +66,7 @@ def list_meetings(
             theme=recording.theme,
             date=recording.started_at,
             status=recording.status,
+            summary_status=recording.summary_status,
             summary_excerpt=_build_excerpt(recording.summary),
             duration_minutes=(
                 (recording.stopped_at - recording.started_at).total_seconds() / 60
@@ -166,6 +172,115 @@ def get_diarized_transcript(
     )
 
 
+@router.post('/{meeting_id}/classify-segments', response_model=SegmentClassificationResponse)
+def classify_segments(
+    meeting_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    recording = (
+        db.query(Recording)
+        .filter(Recording.id == meeting_id, Recording.user_id == current_user.id)
+        .first()
+    )
+    if not recording:
+        raise HTTPException(status_code=404, detail='Réunion introuvable.')
+
+    segments = (
+        db.query(TranscriptSegment)
+        .filter(TranscriptSegment.recording_id == meeting_id)
+        .order_by(TranscriptSegment.start)
+        .all()
+    )
+    if not segments:
+        raise HTTPException(
+            status_code=400,
+            detail='Aucune transcription diarisée disponible pour cette réunion.',
+        )
+
+    llm_service = LLMService()
+    result = llm_service.classify_segments([str(seg.text) for seg in segments])
+    if result is None:
+        # Ne peut se produire ici : classify_segments ne renvoie None que
+        # pour une liste de segments vide, déjà exclue par le contrôle
+        # plus haut. Un échec réel de l'appel API lève LLMError, gérée
+        # globalement (voir app/main.py). Ce garde-fou reste pour le typage.
+        raise HTTPException(
+            status_code=502,
+            detail='Le service de classification est momentanément indisponible.',
+        )
+
+    classifications_by_index = {c.index: c for c in result.classifications}
+    for i, seg in enumerate(segments):
+        classification = classifications_by_index.get(i)
+        if classification is None:
+            continue
+        seg.tone = classification.tone
+        seg.theme = classification.theme
+        seg.urgency = classification.urgency
+
+    db.commit()
+
+    return SegmentClassificationResponse(
+        meeting_id=recording.id,
+        segments=[
+            SegmentClassificationOut(
+                id=seg.id,
+                speaker_name=seg.speaker,
+                text=seg.text,
+                start=seg.start,
+                tone=seg.tone,
+                theme=seg.theme,
+                urgency=seg.urgency,
+            )
+            for seg in segments
+        ],
+    )
+
+
+@router.get('/{meeting_id}/segments-classification', response_model=SegmentClassificationResponse)
+def get_segments_classification(
+    meeting_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    recording = (
+        db.query(Recording)
+        .filter(Recording.id == meeting_id, Recording.user_id == current_user.id)
+        .first()
+    )
+    if not recording:
+        raise HTTPException(status_code=404, detail='Réunion introuvable.')
+
+    segments = (
+        db.query(TranscriptSegment)
+        .filter(TranscriptSegment.recording_id == meeting_id)
+        .order_by(TranscriptSegment.start)
+        .all()
+    )
+    if not segments:
+        raise HTTPException(
+            status_code=404,
+            detail='Aucune diarisation disponible pour cette réunion.',
+        )
+
+    return SegmentClassificationResponse(
+        meeting_id=recording.id,
+        segments=[
+            SegmentClassificationOut(
+                id=seg.id,
+                speaker_name=seg.speaker,
+                text=seg.text,
+                start=seg.start,
+                tone=seg.tone,
+                theme=seg.theme,
+                urgency=seg.urgency,
+            )
+            for seg in segments
+        ],
+    )
+
+
 @router.get('/{meeting_id}/details', response_model=MeetingDetailResponse)
 def get_meeting_details(
     meeting_id: int,
@@ -197,4 +312,30 @@ def get_meeting_details(
         speakers=[SpeakerOut.model_validate(speaker) for speaker in recording.speakers],
         segments=[SegmentOut(speaker_name=seg.speaker, text=seg.text, start=seg.start) for seg in segments],
         actions=[ActionResponse.model_validate(action) for action in recording.actions],
+    )
+
+
+@router.get('/{meeting_id}/export-pdf')
+def export_meeting_pdf(
+    meeting_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    recording = (
+        db.query(Recording)
+        .filter(Recording.id == meeting_id, Recording.user_id == current_user.id)
+        .options(
+            selectinload(Recording.actions).selectinload(Action.speaker),
+        )
+        .first()
+    )
+    if not recording:
+        raise HTTPException(status_code=404, detail='Réunion introuvable.')
+
+    pdf_bytes = PDFExportService().generate_pdf(recording)
+
+    return Response(
+        content=pdf_bytes,
+        media_type='application/pdf',
+        headers={'Content-Disposition': f'attachment; filename="compte-rendu-{meeting_id}.pdf"'},
     )

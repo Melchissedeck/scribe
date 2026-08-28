@@ -26,3 +26,12 @@ class ActionStatusUpdate(BaseModel):
 
 class ActionDueDateUpdate(BaseModel):
     due_date: date | None = None
+
+
+class OverdueActionOut(BaseModel):
+    id: int
+    description: str
+    status: str
+    due_date: date
+    meeting_id: int
+    meeting_theme: str | None = None
