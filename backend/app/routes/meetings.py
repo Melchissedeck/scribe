@@ -1,10 +1,11 @@
 from datetime import date, datetime, time
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy.orm import Session, selectinload
 
 from app.database import get_db
 from app.dependencies import get_current_user
+from app.models.action import Action
 from app.models.recording import Recording
 from app.models.transcript_segment import TranscriptSegment
 from app.models.user import User
@@ -23,6 +24,7 @@ from app.schemas.recording import (
     ThemeUpdate,
 )
 from app.services.llm_service import LLMService
+from pdf_export_service import PDFExportService
 
 router = APIRouter(prefix='/meetings', tags=['meetings'])
 
@@ -309,4 +311,30 @@ def get_meeting_details(
         speakers=[SpeakerOut.model_validate(speaker) for speaker in recording.speakers],
         segments=[SegmentOut(speaker_name=seg.speaker, text=seg.text, start=seg.start) for seg in segments],
         actions=[ActionResponse.model_validate(action) for action in recording.actions],
+    )
+
+
+@router.get('/{meeting_id}/export-pdf')
+def export_meeting_pdf(
+    meeting_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    recording = (
+        db.query(Recording)
+        .filter(Recording.id == meeting_id, Recording.user_id == current_user.id)
+        .options(
+            selectinload(Recording.actions).selectinload(Action.speaker),
+        )
+        .first()
+    )
+    if not recording:
+        raise HTTPException(status_code=404, detail='Réunion introuvable.')
+
+    pdf_bytes = PDFExportService().generate_pdf(recording)
+
+    return Response(
+        content=pdf_bytes,
+        media_type='application/pdf',
+        headers={'Content-Disposition': f'attachment; filename="compte-rendu-{meeting_id}.pdf"'},
     )

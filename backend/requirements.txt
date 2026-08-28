@@ -13,6 +13,7 @@ pydub>=0.25.1
 audioop-lts>=0.2.1; python_version >= "3.13"
 python-multipart>=0.0.9
 anthropic>=0.70.0
+reportlab>=4.2.0
 pyannote.audio>=4.0.7
 pytest==9.1.1
 pytest-cov>=7.1.0

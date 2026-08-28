@@ -56,6 +56,9 @@ def extract_actions(
     if not recording.theme and structured.themes:
         recording.theme = structured.themes[0].strip() or None
 
+    if structured.decisions:
+        recording.decisions = structured.decisions
+
     speakers = db.query(Speaker).filter(Speaker.recording_id == recording.id).all()
 
     created_actions = []
