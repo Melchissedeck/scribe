@@ -11,6 +11,7 @@ from app.models.transcript_segment import TranscriptSegment
 from app.models.user import User
 from app.schemas.action import ActionResponse
 from app.schemas.recording import (
+    AnonymizeResponse,
     DiarizedTranscriptResponse,
     MeetingDetailResponse,
     MeetingListItem,
@@ -23,6 +24,7 @@ from app.schemas.recording import (
     ThemeResponse,
     ThemeUpdate,
 )
+from app.services.anonymization_service import anonymize_recording
 from app.services.llm_service import LLMService
 from pdf_export_service import PDFExportService
 
@@ -276,6 +278,43 @@ def get_segments_classification(
                 theme=seg.theme,
                 urgency=seg.urgency,
             )
+            for seg in segments
+        ],
+    )
+
+
+@router.post('/{meeting_id}/anonymize', response_model=AnonymizeResponse)
+def anonymize_meeting(
+    meeting_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Remplace les noms des locuteurs d'une réunion par un libellé générique.
+
+    Action irréversible (US-69, droit à l'effacement RGPD) : le nom
+    d'origine n'est conservé nulle part une fois l'opération effectuée.
+    """
+    recording = (
+        db.query(Recording)
+        .filter(Recording.id == meeting_id, Recording.user_id == current_user.id)
+        .first()
+    )
+    if not recording:
+        raise HTTPException(status_code=404, detail='Réunion introuvable.')
+
+    anonymize_recording(db, recording.id)
+
+    segments = (
+        db.query(TranscriptSegment)
+        .filter(TranscriptSegment.recording_id == meeting_id)
+        .order_by(TranscriptSegment.start)
+        .all()
+    )
+
+    return AnonymizeResponse(
+        recording_id=recording.id,
+        segments=[
+            SegmentOut(speaker_name=seg.speaker, text=seg.text, start=seg.start)
             for seg in segments
         ],
     )

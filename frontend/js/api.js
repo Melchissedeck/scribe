@@ -88,6 +88,10 @@ export function getDiarizeStatus(meetingId) {
   return apiRequest(`/meetings/${meetingId}/diarize-status`, { method: 'GET' });
 }
 
+export function anonymizeMeeting(meetingId) {
+  return apiRequest(`/meetings/${meetingId}/anonymize`, { method: 'POST' });
+}
+
 export function generateSummary(meetingId) {
   return apiRequest(`/meetings/${meetingId}/generate-summary`, { method: 'POST' });
 }
