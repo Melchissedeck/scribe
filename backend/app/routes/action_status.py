@@ -125,6 +125,27 @@ def update_action_status(
     )
 
 
+@router.delete('/{action_id}', status_code=204)
+def delete_action(
+    action_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    action = (
+        db.query(Action)
+        .join(Recording, Action.recording_id == Recording.id)
+        .filter(
+            Action.id == action_id,
+            Recording.user_id == current_user.id,
+        )
+        .first()
+    )
+    if not action:
+        raise HTTPException(status_code=404, detail='Action introuvable.')
+    db.delete(action)
+    db.commit()
+
+
 @router.patch('/{action_id}/due-date', response_model=ActionResponse)
 def update_action_due_date(
     action_id: int,
