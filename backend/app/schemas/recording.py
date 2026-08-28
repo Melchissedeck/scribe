@@ -72,6 +72,11 @@ class DiarizeStatusResponse(BaseModel):
     segments: list[SegmentOut]
 
 
+class AnonymizeResponse(BaseModel):
+    recording_id: int
+    segments: list[SegmentOut]
+
+
 class SpeakerOut(BaseModel):
     id: int
     provisional_name: str

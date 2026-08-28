@@ -1,6 +1,7 @@
 import {
   getMeetingDetails, getSpeakingTime, generateSummary, extractActions,
-  updateMeetingTheme, updateActionStatus, exportMeetingPdf, getDiarizeStatus, ApiError,
+  updateMeetingTheme, updateActionStatus, exportMeetingPdf, exportDocx,
+  getDiarizeStatus, anonymizeMeeting, ApiError,
 } from './api.js';
 
 if (!sessionStorage.getItem('access_token')) {
@@ -33,6 +34,8 @@ const actionsBody     = document.getElementById('cr-actions-body');
 
 let currentMeetingId = null;
 let currentTheme = null;
+let currentStartedAt = null;
+let currentPlatform = null;
 
 loadData();
 
@@ -62,6 +65,8 @@ async function loadData() {
 
     const d = details.value;
     const st = speakingTime.status === 'fulfilled' ? speakingTime.value : null;
+    currentStartedAt = d.started_at;
+    currentPlatform = d.platform;
 
     renderMeta(d);
     await renderSummary(d);
@@ -347,6 +352,30 @@ document.getElementById('btn-copy').addEventListener('click', () => {
 });
 
 document.getElementById('btn-fab').addEventListener('click', (e) => downloadPdf(e.currentTarget));
+
+document.getElementById('btn-anonymize').addEventListener('click', async (e) => {
+  const confirmed = window.confirm(
+    "Remplacer le nom des intervenants par des libellés génériques (Locuteur 1, Locuteur 2…) ?\n\n" +
+    "Cette action est irréversible : le nom d'origine ne sera plus jamais accessible.",
+  );
+  if (!confirmed) return;
+
+  const button = e.currentTarget;
+  const orig = button.textContent;
+  button.disabled = true;
+  button.textContent = 'Anonymisation…';
+
+  try {
+    const result = await anonymizeMeeting(currentMeetingId);
+    const speakingTime = await getSpeakingTime(currentMeetingId).catch(() => null);
+    renderExchanges(result.segments, speakingTime, currentStartedAt, currentPlatform, 'done');
+  } catch (err) {
+    alert(err instanceof ApiError ? err.message : "Impossible d'anonymiser cette réunion pour le moment.");
+  } finally {
+    button.disabled = false;
+    button.textContent = orig;
+  }
+});
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 function buildColorMap(segments) {
