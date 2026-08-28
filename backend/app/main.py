@@ -20,6 +20,7 @@ from app.routes import (
     actions,
     admin,
     auth,
+    dashboard,
     dictaphone,
     meetings,
     recording,
@@ -136,6 +137,7 @@ app.include_router(users.router)
 app.include_router(actions.router)
 app.include_router(action_status.router)
 app.include_router(admin.router)
+app.include_router(dashboard.router)
 
 @app.get("/health")
 def health_check() -> dict[str, str]:
