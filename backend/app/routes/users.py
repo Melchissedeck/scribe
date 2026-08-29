@@ -1,3 +1,4 @@
+import logging
 import shutil
 from pathlib import Path
 
@@ -13,6 +14,8 @@ from app.models.transcript_segment import TranscriptSegment
 from app.models.user import User
 from app.schemas.user import UserRead, UserUpdate
 from app.services.audit_log_service import record_log
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix='/users', tags=['users'])
 
@@ -102,4 +105,9 @@ def delete_account(
 
     for recording_id in recording_ids:
         recording_dir = UPLOAD_DIR / str(recording_id)
-        shutil.rmtree(recording_dir, ignore_errors=True)
+        try:
+            shutil.rmtree(recording_dir)
+        except FileNotFoundError:
+            pass
+        except OSError as exc:
+            logger.error('Échec suppression fichiers réunion %s : %s', recording_id, exc)
