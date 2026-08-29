@@ -407,7 +407,7 @@ def export_docx(
     try:
         doc = Document()
 
-        title = recording.theme or 'Réunion sans titre'
+        title = str(recording.theme).strip() if recording.theme else 'Réunion sans titre'
         doc.add_heading(title, 0)
 
         if recording.started_at:
