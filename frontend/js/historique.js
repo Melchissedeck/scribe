@@ -4,6 +4,7 @@ const meetingGrid  = document.getElementById('meeting-grid');
 const emptyState   = document.getElementById('empty-state');
 const errorState   = document.getElementById('error-state');
 const resultsCount = document.getElementById('results-count');
+const paginationEl = document.getElementById('pagination');
 
 const searchInput  = document.getElementById('filter-search');
 const dateSelect   = document.getElementById('filter-date');
@@ -18,7 +19,10 @@ document.getElementById('logout-btn').addEventListener('click', () => {
   window.location.href = 'login.html';
 });
 
+const PAGE_SIZE = 9;
+let currentPage = 1;
 let allMeetings = [];
+let filteredMeetings = [];
 
 const activeFilters = { search: '', date: '', status: '' };
 
@@ -94,7 +98,37 @@ function applyFilters() {
     return true;
   });
 
-  renderMeetings(filtered);
+  filteredMeetings = filtered;
+  currentPage = 1;
+  renderPage();
+}
+
+function renderPage() {
+  const start = (currentPage - 1) * PAGE_SIZE;
+  renderMeetings(filteredMeetings.slice(start, start + PAGE_SIZE));
+  renderPagination();
+}
+
+function renderPagination() {
+  paginationEl.innerHTML = '';
+  const totalPages = Math.ceil(filteredMeetings.length / PAGE_SIZE);
+  if (totalPages <= 1) return;
+
+  paginationEl.innerHTML = `
+    <button class="pagination-btn" id="pg-prev" ${currentPage === 1 ? 'disabled' : ''}>
+      &#8592; Précédent
+    </button>
+    <span class="pagination-info">Page ${currentPage} / ${totalPages}</span>
+    <button class="pagination-btn" id="pg-next" ${currentPage === totalPages ? 'disabled' : ''}>
+      Suivant &#8594;
+    </button>
+  `;
+  document.getElementById('pg-prev').addEventListener('click', () => {
+    if (currentPage > 1) { currentPage--; renderPage(); window.scrollTo(0, 0); }
+  });
+  document.getElementById('pg-next').addEventListener('click', () => {
+    if (currentPage < totalPages) { currentPage++; renderPage(); window.scrollTo(0, 0); }
+  });
 }
 
 // ── Rendu ─────────────────────────────────────────────────────────────────────
@@ -107,13 +141,14 @@ function renderMeetings(meetings) {
   const hasActiveFilter = activeFilters.search || activeFilters.date || activeFilters.status;
 
   if (hasActiveFilter) {
-    resultsCount.textContent = `${meetings.length} résultat${meetings.length !== 1 ? 's' : ''}`;
+    const total = filteredMeetings.length;
+    resultsCount.textContent = `${total} résultat${total !== 1 ? 's' : ''}`;
     resultsCount.hidden = false;
   } else {
     resultsCount.hidden = true;
   }
 
-  if (meetings.length === 0) {
+  if (filteredMeetings.length === 0) {
     emptyState.hidden = false;
     return;
   }
