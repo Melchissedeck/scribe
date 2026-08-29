@@ -5,8 +5,6 @@ from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-logger = logging.getLogger(__name__)
-
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.action import Action
@@ -16,6 +14,8 @@ from app.models.transcript_segment import TranscriptSegment
 from app.models.user import User
 from app.schemas.user import UserRead, UserUpdate
 from app.services.audit_log_service import record_log
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix='/users', tags=['users'])
 

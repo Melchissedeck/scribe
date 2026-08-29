@@ -372,9 +372,10 @@ def export_docx(
         raise HTTPException(status_code=404, detail='Réunion introuvable.')
 
     try:
-        from docx import Document
-        from docx.shared import Pt, RGBColor
         import re as _re
+
+        from docx import Document
+        from docx.shared import Pt
     except ImportError as exc:
         raise HTTPException(status_code=503, detail='Module Word non disponible sur ce serveur.') from exc
 
