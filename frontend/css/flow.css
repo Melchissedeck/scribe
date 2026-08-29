@@ -8,6 +8,19 @@
   padding: 20px;
 }
 
+.flow-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  margin-bottom: 16px;
+}
+
+.flow-back:hover { color: var(--color-primary); }
+
 .flow-card {
   width: 100%;
   max-width: 480px;

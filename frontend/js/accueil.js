@@ -233,7 +233,7 @@ async function loadOverdueAlert() {
       const item = document.createElement('li');
       item.className = 'overdue-item';
       item.addEventListener('click', () => {
-        window.location.href = `meeting-detail.html?id=${action.meeting_id}`;
+        window.location.href = `actions.html?highlight=${action.id}`;
       });
 
       const left = document.createElement('div');

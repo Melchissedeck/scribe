@@ -1,4 +1,5 @@
 import io
+import re
 from typing import cast
 
 from reportlab.lib import colors
@@ -16,6 +17,14 @@ _HEADER_BG = colors.HexColor('#EAF1FF')
 _BORDER = colors.HexColor('#E3E9F2')
 _MUTED = colors.HexColor('#64748B')
 _ROW_ALT = colors.HexColor('#F9FAFC')
+
+
+def _md_inline(text: str) -> str:
+    """Convert **bold** and *italic* Markdown to reportlab markup (after HTML escaping)."""
+    text = _escape(text)
+    text = re.sub(r'\*\*(.+?)\*\*', r'<b>\1</b>', text)
+    text = re.sub(r'\*(.+?)\*', r'<i>\1</i>', text)
+    return text
 
 
 def _escape(text: str | None) -> str:
@@ -66,7 +75,7 @@ class PDFExportService:
         story.append(Paragraph(self._date_label(recording), self.meta_style))
 
         story.append(Paragraph('Résumé', self.section_style))
-        story.append(Paragraph(self._summary_html(recording), self.body_style))
+        story.extend(self._parse_summary(str(recording.summary) if recording.summary else ''))
 
         decisions = self._decisions(recording)
         if decisions:
@@ -99,11 +108,26 @@ class PDFExportService:
             return []
         return [str(decision) for decision in cast(list, recording.decisions)]
 
-    def _summary_html(self, recording: Recording) -> str:
-        summary = str(recording.summary).strip() if recording.summary else ''
-        if not summary:
-            return 'Aucun résumé disponible pour cette réunion.'
-        return _escape(summary).replace('\n', '<br/>')
+    def _parse_summary(self, summary: str) -> list:
+        """Convert a Markdown summary into a list of reportlab flowables."""
+        if not summary.strip():
+            return [Paragraph('Aucun résumé disponible pour cette réunion.', self.body_style)]
+        flowables = []
+        for line in summary.split('\n'):
+            line = line.rstrip()
+            if not line:
+                flowables.append(Spacer(1, 3))
+            elif line.startswith('### '):
+                flowables.append(Paragraph(_md_inline(line[4:]), self.section_style))
+            elif line.startswith('## '):
+                flowables.append(Paragraph(_md_inline(line[3:]), self.section_style))
+            elif line.startswith('# '):
+                flowables.append(Paragraph(_md_inline(line[2:]), self.section_style))
+            elif line.startswith('- ') or line.startswith('* '):
+                flowables.append(Paragraph(f'•&nbsp;&nbsp;{_md_inline(line[2:])}', self.body_style))
+            else:
+                flowables.append(Paragraph(_md_inline(line), self.body_style))
+        return flowables
 
     def _actions_table(self, actions: list) -> Table:
         header = ['Description', 'Responsable', 'Statut', 'Échéance']

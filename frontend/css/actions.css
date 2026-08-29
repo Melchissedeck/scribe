@@ -76,17 +76,45 @@
   box-shadow: 0 4px 14px rgba(15, 23, 42, .09);
 }
 
+/* kanban-card-top : ligne poignée (gauche) + poubelle (droite) — ne pas supprimer ce bloc */
+.kanban-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
 .kanban-drag-handle {
   display: flex;
-  justify-content: center;
+  align-items: center;
   color: var(--scribe-text-faint);
   cursor: grab;
-  padding: 2px 0;
-  margin-bottom: 2px;
+  padding: 2px 4px;
 }
 
 .kanban-drag-handle:active {
   cursor: grabbing;
+}
+
+.kanban-delete-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--scribe-border);
+  background: var(--scribe-bg);
+  color: var(--scribe-text-muted);
+  border-radius: 7px;
+  cursor: pointer;
+  transition: background .15s, color .15s, border-color .15s;
+  flex-shrink: 0;
+}
+
+.kanban-delete-btn:hover {
+  background: #FEF2F2;
+  border-color: #FECACA;
+  color: var(--scribe-error, #EF4444);
 }
 
 .kanban-card-desc {
@@ -195,4 +223,15 @@
   .kanban-board {
     grid-template-columns: 1fr;
   }
+}
+
+.kanban-card--highlight {
+  outline: 2px solid var(--scribe-primary, #2563EB);
+  outline-offset: 2px;
+  animation: kanban-highlight-fade 2s ease forwards;
+}
+
+@keyframes kanban-highlight-fade {
+  0%   { outline-color: var(--scribe-primary, #2563EB); }
+  100% { outline-color: transparent; }
 }

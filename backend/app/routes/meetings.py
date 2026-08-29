@@ -1,6 +1,8 @@
+import io
 from datetime import date, datetime, time
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session, selectinload
 
 from app.database import get_db
@@ -31,6 +33,8 @@ from pdf_export_service import PDFExportService
 router = APIRouter(prefix='/meetings', tags=['meetings'])
 
 EXCERPT_LENGTH = 150
+
+_STATUS_LABELS = {'todo': 'À faire', 'in_progress': 'En cours', 'done': 'Terminé'}
 
 
 def _build_excerpt(summary: str | None) -> str | None:
@@ -203,10 +207,6 @@ def classify_segments(
     llm_service = LLMService()
     result = llm_service.classify_segments([str(seg.text) for seg in segments])
     if result is None:
-        # Ne peut se produire ici : classify_segments ne renvoie None que
-        # pour une liste de segments vide, déjà exclue par le contrôle
-        # plus haut. Un échec réel de l'appel API lève LLMError, gérée
-        # globalement (voir app/main.py). Ce garde-fou reste pour le typage.
         raise HTTPException(
             status_code=502,
             detail='Le service de classification est momentanément indisponible.',
@@ -354,6 +354,106 @@ def get_meeting_details(
         segments=[SegmentOut(speaker_name=seg.speaker, text=seg.text, start=seg.start) for seg in segments],
         actions=[ActionResponse.model_validate(action) for action in recording.actions],
     )
+
+
+@router.get('/{meeting_id}/export-docx')
+def export_docx(
+    meeting_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> StreamingResponse:
+    recording = (
+        db.query(Recording)
+        .filter(Recording.id == meeting_id, Recording.user_id == current_user.id)
+        .options(selectinload(Recording.actions).selectinload(Action.speaker))
+        .first()
+    )
+    if not recording:
+        raise HTTPException(status_code=404, detail='Réunion introuvable.')
+
+    try:
+        from docx import Document
+        from docx.shared import Pt, RGBColor
+        import re as _re
+    except ImportError as exc:
+        raise HTTPException(status_code=503, detail='Module Word non disponible sur ce serveur.') from exc
+
+    def _add_md_paragraph(doc, text: str, style: str = 'Normal'):
+        parts = _re.split(r'\*\*(.+?)\*\*', text)
+        p = doc.add_paragraph(style=style)
+        for i, part in enumerate(parts):
+            run = p.add_run(part)
+            if i % 2 == 1:
+                run.bold = True
+        return p
+
+    def _add_md_summary(doc, summary: str):
+        for line in summary.split('\n'):
+            line = line.rstrip()
+            if not line:
+                doc.add_paragraph('')
+            elif line.startswith('### '):
+                doc.add_heading(line[4:], 3)
+            elif line.startswith('## '):
+                doc.add_heading(line[3:], 2)
+            elif line.startswith('# '):
+                doc.add_heading(line[2:], 2)
+            elif line.startswith('- ') or line.startswith('* '):
+                _add_md_paragraph(doc, line[2:], 'List Bullet')
+            else:
+                _add_md_paragraph(doc, line)
+
+    try:
+        doc = Document()
+
+        title = recording.theme or 'Réunion sans titre'
+        doc.add_heading(title, 0)
+
+        if recording.started_at:
+            date_str = recording.started_at.strftime('%d/%m/%Y à %H:%M')
+            meta = doc.add_paragraph(f'Date : {date_str}')
+            meta.runs[0].font.size = Pt(11)
+
+        doc.add_heading('Résumé', 1)
+        summary_text = str(recording.summary).strip() if recording.summary else ''
+        if summary_text:
+            _add_md_summary(doc, summary_text)
+        else:
+            doc.add_paragraph('Aucun résumé disponible.')
+
+        actions = list(recording.actions)
+        if actions:
+            doc.add_heading("Plan d'action", 1)
+            table = doc.add_table(rows=1, cols=4)
+            table.style = 'Table Grid'
+            hdr = table.rows[0].cells
+            hdr[0].text = 'Description'
+            hdr[1].text = 'Responsable'
+            hdr[2].text = 'Statut'
+            hdr[3].text = 'Échéance'
+            for action in actions:
+                row = table.add_row().cells
+                speaker = action.speaker
+                responsable = (speaker.real_name or speaker.provisional_name) if speaker else '—'
+                row[0].text = str(action.description)
+                row[1].text = responsable
+                row[2].text = _STATUS_LABELS.get(action.status, action.status)
+                row[3].text = action.due_date.strftime('%d/%m/%Y') if action.due_date else '—'
+
+        buffer = io.BytesIO()
+        doc.save(buffer)
+        buffer.seek(0)
+
+        safe = ''.join(c for c in title if c.isalnum() or c in (' ', '-', '_')).strip()[:50]
+        filename = f"{safe}.docx" if safe else f"compte-rendu-{meeting_id}.docx"
+
+        return StreamingResponse(
+            buffer,
+            media_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            headers={'Content-Disposition': f'attachment; filename="{filename}"'},
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail='Erreur lors de la génération du fichier Word.') from exc
 
 
 @router.get('/{meeting_id}/export-pdf')

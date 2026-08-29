@@ -1,8 +1,11 @@
+import logging
 import shutil
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+
+logger = logging.getLogger(__name__)
 
 from app.database import get_db
 from app.dependencies import get_current_user
@@ -102,4 +105,9 @@ def delete_account(
 
     for recording_id in recording_ids:
         recording_dir = UPLOAD_DIR / str(recording_id)
-        shutil.rmtree(recording_dir, ignore_errors=True)
+        try:
+            shutil.rmtree(recording_dir)
+        except FileNotFoundError:
+            pass
+        except OSError as exc:
+            logger.error('Échec suppression fichiers réunion %s : %s', recording_id, exc)
