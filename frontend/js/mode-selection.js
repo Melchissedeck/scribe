@@ -1,6 +1,7 @@
 ﻿// Logique de la page de choix du mode de captation
 
 import { requireConsent } from './consent.js';
+import './theme.js';
 
 requireConsent();
 

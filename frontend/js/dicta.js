@@ -1,4 +1,5 @@
 ﻿import { requireConsent } from './consent.js';
+import './theme.js';
 
 requireConsent();
 

@@ -1,6 +1,7 @@
 // Logique de la page dashboard listant les reunions passees
 
 import { getMeetings, ApiError } from './api.js';
+import './theme.js';
 
 const meetingListEl = document.getElementById('meeting-list');
 const emptyStateEl = document.getElementById('empty-state');

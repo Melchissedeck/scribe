@@ -1,4 +1,6 @@
 import { getMeetings, getActions, getOverdueActions, getDashboardTrends, ApiError } from './api.js';
+import './sidebar.js';
+import './theme.js';
 
 const PAGE_SIZE = 9;
 let currentPage = 1;

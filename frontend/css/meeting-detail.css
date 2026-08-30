@@ -207,6 +207,35 @@
   .cr-grid-2 { grid-template-columns: 1fr; }
 }
 
+@media (max-width: 768px) {
+  .cr-stepper {
+    overflow-x: auto;
+    padding-bottom: 8px;
+    scrollbar-width: none;
+  }
+  .cr-stepper::-webkit-scrollbar { display: none; }
+
+  .cr-title { font-size: 20px; }
+
+  .cr-action-bar { gap: 6px; }
+
+  .cr-btn-action { padding: 10px 12px; font-size: 12px; min-height: 44px; }
+
+  .cr-table { font-size: 12px; }
+  .cr-table th, .cr-table td { padding: 8px 8px; }
+
+  .cr-fab { bottom: 16px; right: 16px; padding: 12px 18px; font-size: 13px; }
+
+  .cr-page { padding: 20px 14px 100px; }
+}
+
+@media (max-width: 480px) {
+  .cr-step-label { display: none; }
+  .cr-title { font-size: 18px; }
+  .cr-header-card { padding: 16px; }
+  .cr-card { padding: 16px; }
+}
+
 /* ── Résumé ──────────────────────────────────────────────────────────────── */
 .cr-summary-text {
   font-size: 13.5px;

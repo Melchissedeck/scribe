@@ -3,6 +3,8 @@ import {
   updateMeetingTheme, updateActionStatus, exportMeetingPdf, exportDocx,
   getDiarizeStatus, anonymizeMeeting, ApiError,
 } from './api.js';
+import './sidebar.js';
+import './theme.js';
 
 if (!sessionStorage.getItem('access_token')) {
   window.location.href = 'login.html';

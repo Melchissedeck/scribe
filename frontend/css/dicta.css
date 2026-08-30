@@ -204,3 +204,8 @@
 .visio-hidden {
   display: none !important;
 }
+
+@media (max-width: 480px) {
+  .dicta-timer { font-size: 28px; }
+  .transcription-result { max-height: 50vh; }
+}

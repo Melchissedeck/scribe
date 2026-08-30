@@ -1,4 +1,6 @@
 import { getActions, updateActionStatus, updateActionDueDate, deleteAction, ApiError } from './api.js';
+import './sidebar.js';
+import './theme.js';
 
 const today = new Date().toISOString().split('T')[0];
 

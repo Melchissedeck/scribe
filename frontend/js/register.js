@@ -1,6 +1,7 @@
 ﻿// Logique de la page d'inscription
 
 import { registerUser, ApiError } from './api.js';
+import './theme.js';
 import { initPasswordToggles } from './password-toggle.js';
 
 const form = document.getElementById('register-form');

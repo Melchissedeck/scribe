@@ -1,4 +1,5 @@
 import { requireConsent } from './consent.js';
+import './theme.js';
 import {
   startRecording, stopRecording, refreshTranscript,
   getSpeakingTime, createDictaphoneRecording, uploadAudioFile, transcribeRecording,

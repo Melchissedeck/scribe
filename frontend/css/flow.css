@@ -110,3 +110,9 @@
   font-size: 12.5px;
   color: var(--color-text-secondary);
 }
+
+@media (max-width: 480px) {
+  .flow-actions { flex-direction: column; }
+  .flow-card { padding: 18px 16px; }
+  .flow-list li { padding: 12px 0; }
+}

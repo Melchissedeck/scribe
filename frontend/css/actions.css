@@ -219,9 +219,18 @@
   transform: rotate(1deg);
 }
 
-@media (max-width: 900px) {
+@media (max-width: 768px) {
   .kanban-board {
     grid-template-columns: 1fr;
+  }
+
+  .kanban-delete-btn {
+    width: 36px;
+    height: 36px;
+  }
+
+  .kanban-drag-handle {
+    padding: 6px 8px;
   }
 }
 
