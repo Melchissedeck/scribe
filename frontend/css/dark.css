@@ -3,6 +3,10 @@
    Appliqué via [data-theme="dark"] sur <html>
    ================================================================ */
 
+/* ── Hamburger — caché sur desktop (fallback si accueil.css en cache) */
+.dash-hamburger { display: none; }
+@media (max-width: 768px) { .dash-hamburger { display: flex; } }
+
 /* ── Overrides de variables ────────────────────────────────────── */
 [data-theme="dark"] {
   /* scribe-* (dash-shell / accueil.css) */
