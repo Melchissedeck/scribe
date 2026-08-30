@@ -361,3 +361,9 @@
   border-radius: 3px;
   transition: width 0.4s ease;
 }
+
+@media (max-width: 480px) {
+  .platform-grid { grid-template-columns: 1fr 1fr; }
+  .transcript-content { max-height: 40vh; }
+  .file-label { min-height: 44px; }
+}

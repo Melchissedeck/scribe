@@ -1,6 +1,7 @@
 ﻿// Logique de la page de connexion
 
 import { loginUser, ApiError } from './api.js';
+import './theme.js';
 import { initPasswordToggles } from './password-toggle.js';
 
 const form = document.getElementById('login-form');

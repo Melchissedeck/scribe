@@ -1,6 +1,7 @@
 ﻿// Logique de la page de consentement
 
 import { grantConsent } from './consent.js';
+import './theme.js';
 
 const acceptButton = document.getElementById('accept-button');
 const refuseButton = document.getElementById('refuse-button');

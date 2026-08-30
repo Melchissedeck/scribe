@@ -1,4 +1,6 @@
 import { getMeetings, ApiError } from './api.js';
+import './sidebar.js';
+import './theme.js';
 
 const meetingGrid  = document.getElementById('meeting-grid');
 const emptyState   = document.getElementById('empty-state');

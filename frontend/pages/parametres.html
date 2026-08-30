@@ -3,11 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script>try{var t=localStorage.getItem('scribe-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
   <title>Scribe IA - Paramètres</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../css/accueil.css">
+  <link rel="stylesheet" href="../css/dark.css">
 </head>
 <body>
   <div class="dash-shell">
@@ -15,7 +17,7 @@
     <!-- ── Sidebar ─────────────────────────────────────────────────────── -->
     <aside class="dash-sidebar">
 
-      <div class="dash-logo">
+      <a href="accueil.html" class="dash-logo">
         <div class="dash-logo-mark">
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
         </div>
@@ -23,7 +25,7 @@
           <span>Scribe<span class="accent"> IA</span></span>
           <small>Assistant de réunion</small>
         </div>
-      </div>
+      </a>
 
       <nav class="dash-nav">
         <a href="accueil.html" class="dash-nav-item">

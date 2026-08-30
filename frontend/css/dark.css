@@ -1,0 +1,302 @@
+/* ================================================================
+   DARK MODE — Scribe IA
+   Appliqué via [data-theme="dark"] sur <html>
+   ================================================================ */
+
+/* ── Overrides de variables ────────────────────────────────────── */
+[data-theme="dark"] {
+  /* scribe-* (dash-shell / accueil.css) */
+  --scribe-bg:            #0F172A;
+  --scribe-border:        #334155;
+  --scribe-border-strong: #2563EB;
+  --scribe-text:          #F1F5F9;
+  --scribe-text-muted:    #94A3B8;
+  --scribe-text-faint:    #64748B;
+
+  /* color-* (tokens.css — pages flow/auth/meeting-detail) */
+  --color-background:    #0F172A;
+  --color-surface:       #1E293B;
+  --color-text:          #F1F5F9;
+  --color-text-secondary:#CBD5E1;
+  --color-text-muted:    #94A3B8;
+  --color-border:        #334155;
+  --color-border-primary:#1E40AF;
+  --color-primary-bg:    #172554;
+  --shadow-card:         0 10px 30px rgba(0,0,0,.4);
+  --shadow-button:       0 4px 12px rgba(37,99,235,.35);
+  --shadow-button-hover: 0 8px 20px rgba(37,99,235,.5);
+}
+
+/* ── body ──────────────────────────────────────────────────────── */
+[data-theme="dark"] body {
+  background: #0F172A;
+  color: #F1F5F9;
+}
+
+/* ── Dash-shell (accueil.css) ──────────────────────────────────── */
+[data-theme="dark"] .dash-sidebar {
+  background: #1E293B;
+  border-color: #334155;
+}
+
+[data-theme="dark"] .dash-logo-mark {
+  background: #172554;
+  border-color: #1E40AF;
+}
+
+[data-theme="dark"] .dash-nav-item:hover {
+  background: #334155;
+  color: #F1F5F9;
+}
+
+[data-theme="dark"] .dash-nav-item.active {
+  background: #172554;
+  color: #93C5FD;
+}
+
+[data-theme="dark"] .dash-bottom-nav {
+  border-color: #334155;
+}
+
+[data-theme="dark"] .dash-header {
+  background: rgba(15, 23, 42, 0.9);
+  border-color: #334155;
+}
+
+[data-theme="dark"] .dash-avatar {
+  background: #172554;
+  border-color: #1E40AF;
+  color: #93C5FD;
+}
+
+[data-theme="dark"] .card {
+  background: #1E293B;
+  border-color: #334155;
+}
+
+[data-theme="dark"] .ghost-btn {
+  background: #334155;
+  border-color: #475569;
+  color: #93C5FD;
+}
+
+[data-theme="dark"] .ghost-btn:hover {
+  background: #172554;
+  border-color: #2563EB;
+}
+
+[data-theme="dark"] .pagination-btn {
+  background: #1E293B;
+  border-color: #334155;
+  color: #F1F5F9;
+}
+
+[data-theme="dark"] .pagination-btn:hover:not(:disabled) {
+  background: #172554;
+  border-color: #2563EB;
+  color: #93C5FD;
+}
+
+[data-theme="dark"] .badge-done   { background: rgba(37,99,235,.2);  color: #93C5FD; }
+[data-theme="dark"] .badge-active { background: rgba(22,163,74,.2);  color: #4ADE80; }
+[data-theme="dark"] .badge-failed { background: rgba(239,68,68,.15); color: #FCA5A5; }
+
+[data-theme="dark"] .stat-icon-badge {
+  background: rgba(37,99,235,.2);
+  border-color: #1E40AF;
+}
+
+[data-theme="dark"] .section-line { background: #334155; }
+
+[data-theme="dark"] .overdue-alert {
+  background: rgba(127,29,29,.2);
+  border-color: rgba(239,68,68,.3);
+}
+
+[data-theme="dark"] .overdue-alert-icon { background: rgba(239,68,68,.2); }
+
+[data-theme="dark"] .overdue-item {
+  background: #1E293B;
+  border-color: rgba(239,68,68,.3);
+}
+
+[data-theme="dark"] .overdue-item:hover { border-color: #EF4444; }
+
+[data-theme="dark"] .dash-hamburger {
+  background: #1E293B;
+  border-color: #334155;
+  color: #F1F5F9;
+}
+
+/* ── Historique (historique.css) ───────────────────────────────── */
+[data-theme="dark"] .hist-search,
+[data-theme="dark"] .hist-select {
+  background: #1E293B;
+  border-color: #334155;
+  color: #F1F5F9;
+}
+
+[data-theme="dark"] .hist-search::placeholder { color: #64748B; }
+
+[data-theme="dark"] .hist-pill {
+  background: #1E293B;
+  border-color: #334155;
+  color: #94A3B8;
+}
+
+[data-theme="dark"] .hist-pill--active {
+  background: #172554;
+  border-color: #1E40AF;
+  color: #93C5FD;
+}
+
+/* ── Kanban (actions.css) ──────────────────────────────────────── */
+[data-theme="dark"] .kanban-col {
+  background: rgba(30,41,59,.7);
+  border-color: #334155;
+}
+
+[data-theme="dark"] .kanban-col-header { border-color: #334155; }
+
+[data-theme="dark"] .kanban-card {
+  background: #1E293B;
+  border-color: #334155;
+  box-shadow: 0 1px 4px rgba(0,0,0,.2);
+}
+
+[data-theme="dark"] .kanban-card:hover { box-shadow: 0 4px 14px rgba(0,0,0,.35); }
+
+[data-theme="dark"] .kanban-card--ghost {
+  background: #172554;
+  border-color: #2563EB;
+}
+
+[data-theme="dark"] .kanban-card--overdue {
+  border-color: rgba(239,68,68,.6);
+  box-shadow: 0 0 0 1px rgba(239,68,68,.3), 0 1px 4px rgba(239,68,68,.1);
+}
+
+[data-theme="dark"] .kanban-delete-btn:hover {
+  background: rgba(239,68,68,.15);
+  border-color: rgba(239,68,68,.4);
+}
+
+[data-theme="dark"] .kanban-overdue-badge {
+  background: rgba(239,68,68,.15);
+  border-color: rgba(239,68,68,.3);
+}
+
+/* ── Auth / Base (base.css) ────────────────────────────────────── */
+[data-theme="dark"] .input-field {
+  background: #1E293B;
+  border-color: #334155;
+  color: #F1F5F9;
+}
+
+[data-theme="dark"] .input-field::placeholder { color: #64748B; }
+
+[data-theme="dark"] .input-field:focus { border-color: #2563EB; }
+
+/* ── Flow pages (flow.css) ─────────────────────────────────────── */
+[data-theme="dark"] .button-secondary {
+  background: #1E293B;
+  border-color: #334155;
+  color: #CBD5E1;
+}
+
+[data-theme="dark"] .button-secondary:hover { background: #334155; }
+
+/* ── Meeting detail (meeting-detail.css) ───────────────────────── */
+[data-theme="dark"] .cr-badge-done {
+  background: rgba(22,163,74,.2);
+  border-color: rgba(22,163,74,.4);
+  color: #4ADE80;
+}
+
+[data-theme="dark"] .cr-badge-ai,
+[data-theme="dark"] .cr-badge-diarization {
+  background: #172554;
+  border-color: #1E40AF;
+  color: #93C5FD;
+}
+
+[data-theme="dark"] .cr-badge-neutral {
+  background: #334155;
+  border-color: #475569;
+  color: #CBD5E1;
+}
+
+[data-theme="dark"] .cr-step-dot {
+  background: #1E293B;
+  border-color: #334155;
+  color: #94A3B8;
+}
+
+[data-theme="dark"] .cr-step-line { background: #334155; }
+
+[data-theme="dark"] .cr-table th,
+[data-theme="dark"] .cr-table td { border-color: #334155; }
+
+[data-theme="dark"] .cr-table select {
+  background: #1E293B;
+  border-color: #334155;
+  color: #F1F5F9;
+}
+
+/* ── Visio (visio.css) ─────────────────────────────────────────── */
+[data-theme="dark"] .transcript-box { border-color: #334155; }
+
+[data-theme="dark"] .transcript-header {
+  background: #0F172A;
+  border-color: #334155;
+}
+
+[data-theme="dark"] .transcript-content { color: #CBD5E1; }
+
+[data-theme="dark"] .button-stop {
+  background: rgba(239,68,68,.1);
+  border-color: rgba(239,68,68,.4);
+}
+
+[data-theme="dark"] .button-stop:hover { background: rgba(239,68,68,.2); }
+
+[data-theme="dark"] .file-label {
+  border-color: #334155;
+  color: #94A3B8;
+}
+
+[data-theme="dark"] .file-label:hover {
+  border-color: #2563EB;
+  color: #93C5FD;
+}
+
+/* ── Bouton bascule thème ──────────────────────────────────────── */
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--scribe-border, #E3E9F2);
+  background: transparent;
+  border-radius: 10px;
+  cursor: pointer;
+  color: var(--scribe-text-muted, #64748B);
+  transition: background .15s, border-color .15s, color .15s;
+  flex-shrink: 0;
+}
+
+.theme-toggle:hover {
+  background: var(--scribe-bg, #EEF3FB);
+  color: var(--scribe-text, #0F172A);
+}
+
+[data-theme="dark"] .theme-toggle {
+  border-color: #334155;
+  color: #94A3B8;
+}
+
+[data-theme="dark"] .theme-toggle:hover {
+  background: #334155;
+  color: #F1F5F9;
+}
