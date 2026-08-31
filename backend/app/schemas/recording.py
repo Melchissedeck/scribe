@@ -49,8 +49,18 @@ class MeetingListItem(BaseModel):
     summary_status: str
     summary_excerpt: str | None = None
     duration_minutes: float | None = None
+    meeting_type: str | None = None
 
     model_config = {'from_attributes': True}
+
+
+class MeetingTypeUpdate(BaseModel):
+    meeting_type: str | None = None
+
+
+class MeetingTypeResponse(BaseModel):
+    recording_id: int
+    meeting_type: str | None = None
 
 
 class SegmentOut(BaseModel):
@@ -114,6 +124,7 @@ class SegmentClassificationResponse(BaseModel):
 class MeetingDetailResponse(BaseModel):
     id: int
     theme: str | None = None
+    meeting_type: str | None = None
     status: str
     platform: str
     diarization_status: str
