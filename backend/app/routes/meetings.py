@@ -70,6 +70,7 @@ def list_meetings(
         MeetingListItem(
             id=recording.id,
             theme=recording.theme,
+            meeting_type='in_person' if recording.platform == 'dictaphone' else 'remote',
             date=recording.started_at,
             status=recording.status,
             summary_status=recording.summary_status,
@@ -344,6 +345,7 @@ def get_meeting_details(
     return MeetingDetailResponse(
         id=recording.id,
         theme=recording.theme,
+        meeting_type='in_person' if recording.platform == 'dictaphone' else 'remote',
         status=recording.status,
         platform=recording.platform,
         diarization_status=recording.diarization_status,
@@ -455,6 +457,23 @@ def export_docx(
         )
     except Exception as exc:
         raise HTTPException(status_code=500, detail='Erreur lors de la génération du fichier Word.') from exc
+
+
+@router.delete('/{meeting_id}', status_code=204)
+def delete_meeting(
+    meeting_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> Response:
+    recording = db.query(Recording).filter(
+        Recording.id == meeting_id, Recording.user_id == current_user.id
+    ).first()
+    if not recording:
+        raise HTTPException(status_code=404, detail='Réunion introuvable.')
+
+    db.delete(recording)
+    db.commit()
+    return Response(status_code=204)
 
 
 @router.get('/{meeting_id}/export-pdf')
