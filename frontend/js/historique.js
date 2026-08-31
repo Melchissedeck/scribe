@@ -1,4 +1,5 @@
-import { getMeetings, ApiError } from './api.js';
+import { getMeetings, deleteMeeting, ApiError } from './api.js';
+import { confirmModal } from './modal.js';
 import './sidebar.js';
 import './theme.js';
 
@@ -10,7 +11,6 @@ const paginationEl = document.getElementById('pagination');
 
 const searchInput  = document.getElementById('filter-search');
 const dateSelect   = document.getElementById('filter-date');
-const pillButtons  = document.querySelectorAll('.hist-pill');
 
 if (!sessionStorage.getItem('access_token')) {
   window.location.href = 'login.html';
@@ -26,7 +26,7 @@ let currentPage = 1;
 let allMeetings = [];
 let filteredMeetings = [];
 
-const activeFilters = { search: '', date: '', status: '' };
+const activeFilters = { search: '', date: '' };
 
 // ── Chargement initial ────────────────────────────────────────────────────────
 
@@ -61,14 +61,6 @@ dateSelect.addEventListener('change', () => {
   applyFilters();
 });
 
-pillButtons.forEach((btn) => {
-  btn.addEventListener('click', () => {
-    pillButtons.forEach((b) => b.classList.remove('hist-pill--active'));
-    btn.classList.add('hist-pill--active');
-    activeFilters.status = btn.dataset.status;
-    applyFilters();
-  });
-});
 
 // ── Filtrage ──────────────────────────────────────────────────────────────────
 
@@ -94,8 +86,6 @@ function applyFilters() {
       if (activeFilters.date === 'week'  && mDate < weekStart)  return false;
       if (activeFilters.date === 'month' && mDate < monthStart) return false;
     }
-
-    if (activeFilters.status && m.status !== activeFilters.status) return false;
 
     return true;
   });
@@ -140,7 +130,7 @@ function renderMeetings(meetings) {
   emptyState.hidden = true;
   errorState.hidden = true;
 
-  const hasActiveFilter = activeFilters.search || activeFilters.date || activeFilters.status;
+  const hasActiveFilter = activeFilters.search || activeFilters.date;
 
   if (hasActiveFilter) {
     const total = filteredMeetings.length;
@@ -176,9 +166,13 @@ function renderMeetings(meetings) {
           <div class="session-title">${escapeHtml(meeting.theme || 'Réunion sans titre')}</div>
           <div class="session-date">${formatDate(meeting.date)}</div>
         </div>
+        <button class="session-delete-btn" title="Supprimer cette réunion" aria-label="Supprimer">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+        </button>
       </div>
       <p class="session-desc">${escapeHtml(meeting.summary_excerpt || 'Compte-rendu non encore disponible.')}</p>
       <div class="session-footer">
+        ${meetingTypeBadge(meeting.meeting_type)}
         <button class="ghost-btn">Voir le compte-rendu</button>
       </div>
     `;
@@ -186,6 +180,24 @@ function renderMeetings(meetings) {
     card.querySelector('.ghost-btn').addEventListener('click', (e) => {
       e.stopPropagation();
       window.location.href = `meeting-detail.html?id=${meeting.id}`;
+    });
+
+    card.querySelector('.session-delete-btn').addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const title = escapeHtml(meeting.theme || 'Réunion sans titre');
+      const ok = await confirmModal({
+        title: `Supprimer "${title}" ?`,
+        message: 'La réunion, sa transcription et toutes ses actions seront définitivement supprimées. Cette action est irréversible.',
+        confirmLabel: 'Supprimer',
+      });
+      if (!ok) return;
+      try {
+        await deleteMeeting(meeting.id);
+        allMeetings = allMeetings.filter((m) => m.id !== meeting.id);
+        applyFilters();
+      } catch {
+        alert('Impossible de supprimer la réunion. Réessayez.');
+      }
     });
 
     meetingGrid.appendChild(card);
@@ -206,4 +218,14 @@ function escapeHtml(str) {
   const div = document.createElement('div');
   div.textContent = str;
   return div.innerHTML;
+}
+
+function meetingTypeBadge(type) {
+  if (type === 'in_person') {
+    return '<span class="meeting-type-badge meeting-type-badge--in-person"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Présentiel</span>';
+  }
+  if (type === 'remote') {
+    return '<span class="meeting-type-badge meeting-type-badge--remote"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>À distance</span>';
+  }
+  return '';
 }
