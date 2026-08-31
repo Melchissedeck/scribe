@@ -161,6 +161,11 @@ export function deleteAction(actionId) {
   return apiRequest(`/actions/${actionId}`, { method: 'DELETE' });
 }
 
+export function deleteMeeting(meetingId) {
+  return apiRequest(`/meetings/${meetingId}`, { method: 'DELETE' });
+}
+
+
 export function createDictaphoneRecording() {
   return apiRequest('/meetings', { method: 'POST' });
 }

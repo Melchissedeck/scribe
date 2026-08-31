@@ -185,7 +185,54 @@ button { font-family: inherit; cursor: pointer; }
 
 .session-desc { font-size: 13px; line-height: 1.6; color: var(--scribe-text-muted); margin-bottom: 16px; }
 
-.session-footer { display: flex; align-items: center; justify-content: flex-end; }
+.session-footer { display: flex; align-items: center; justify-content: flex-end; gap: 10px; }
+
+.session-delete-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--scribe-text-faint);
+  cursor: pointer;
+  transition: background .15s, border-color .15s, color .15s;
+}
+
+.session-delete-btn:hover {
+  background: rgba(239, 68, 68, .08);
+  border-color: rgba(239, 68, 68, .3);
+  color: #EF4444;
+}
+
+.meeting-type-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 99px;
+  border: 1px solid;
+  margin-right: auto;
+  flex-shrink: 0;
+  font-family: var(--scribe-font);
+}
+
+.meeting-type-badge--in-person {
+  background: #F0FDF4;
+  color: #166534;
+  border-color: #BBF7D0;
+}
+
+.meeting-type-badge--remote {
+  background: #EFF6FF;
+  color: #1D4ED8;
+  border-color: #BFDBFE;
+}
 
 .ghost-btn {
   display: inline-flex;
@@ -412,6 +459,9 @@ button { font-family: inherit; cursor: pointer; }
 
 .chart-canvas-wrap { position: relative; height: 260px; }
 .chart-empty { font-size: 13px; color: var(--scribe-text-faint); text-align: center; padding: 40px 12px; }
+.chart-error { font-size: 13px; color: var(--scribe-error); text-align: center; padding: 40px 12px; }
+
+.stats-error { font-size: 13px; color: var(--scribe-error); padding: 12px 16px; border: 1px solid rgba(239,68,68,.25); border-radius: 10px; background: rgba(239,68,68,.06); margin-bottom: 16px; }
 
 /* ===== RESPONSIVE ===== */
 

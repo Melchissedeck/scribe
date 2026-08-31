@@ -1,4 +1,5 @@
-import { getMeetings, getActions, getOverdueActions, getDashboardTrends, ApiError } from './api.js';
+import { getMeetings, deleteMeeting, getActions, getOverdueActions, getDashboardTrends, ApiError } from './api.js';
+import { confirmModal } from './modal.js';
 import './sidebar.js';
 import './theme.js';
 
@@ -109,9 +110,13 @@ function renderPage() {
           <div class="session-date">${formatDate(meeting.date)}</div>
         </div>
         ${summaryStatusBadge(meeting.summary_status)}
+        <button class="session-delete-btn" title="Supprimer cette réunion" aria-label="Supprimer">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+        </button>
       </div>
       <p class="session-desc">${escape(meeting.summary_excerpt || 'Compte-rendu non encore disponible.')}</p>
       <div class="session-footer">
+        ${meetingTypeBadge(meeting.meeting_type)}
         <button class="ghost-btn">Voir le compte-rendu</button>
       </div>
     `;
@@ -119,6 +124,25 @@ function renderPage() {
     card.querySelector('.ghost-btn').addEventListener('click', (e) => {
       e.stopPropagation();
       window.location.href = `meeting-detail.html?id=${meeting.id}`;
+    });
+
+    card.querySelector('.session-delete-btn').addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const title = escape(meeting.theme || 'Réunion sans titre');
+      const ok = await confirmModal({
+        title: `Supprimer "${title}" ?`,
+        message: 'La réunion, sa transcription et toutes ses actions seront définitivement supprimées. Cette action est irréversible.',
+        confirmLabel: 'Supprimer',
+      });
+      if (!ok) return;
+      try {
+        await deleteMeeting(meeting.id);
+        allMeetings = allMeetings.filter((m) => m.id !== meeting.id);
+        currentPage = 1;
+        renderPage();
+      } catch {
+        alert('Impossible de supprimer la réunion. Réessayez.');
+      }
     });
 
     meetingGrid.appendChild(card);
@@ -175,6 +199,16 @@ function summaryStatusBadge(status) {
   return '';
 }
 
+function meetingTypeBadge(type) {
+  if (type === 'in_person') {
+    return '<span class="meeting-type-badge meeting-type-badge--in-person"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Présentiel</span>';
+  }
+  if (type === 'remote') {
+    return '<span class="meeting-type-badge meeting-type-badge--remote"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>À distance</span>';
+  }
+  return '';
+}
+
 async function loadStats() {
   try {
     const [meetings, allActions] = await Promise.all([
@@ -208,9 +242,8 @@ async function loadStats() {
     document.getElementById('stat-completion-ratio').textContent = totalActions > 0 ? `${doneActions} / ${totalActions} actions` : '';
     document.getElementById('stat-completion-bar').style.width = `${completionRate}%`;
   } catch (err) {
-    // Les stats sont un bonus visuel : en cas d'erreur, on laisse simplement les tirets
-    // sans bloquer le reste de la page (filtres et liste des réunions).
-    console.error('Impossible de charger les statistiques du dashboard.', err);
+    document.getElementById('stats-error').hidden = false;
+    document.getElementById('stats-row').hidden = true;
   }
 }
 
@@ -283,6 +316,7 @@ async function loadTrendChart() {
   const canvas = document.getElementById('chart-trend');
   const wrap = canvas.closest('.chart-canvas-wrap');
   const emptyEl = document.getElementById('trend-empty');
+  const errorEl = document.getElementById('trend-error');
   const legendEl = document.getElementById('trend-legend');
 
   try {
@@ -390,9 +424,8 @@ async function loadTrendChart() {
       legendEl.appendChild(item);
     });
   } catch (err) {
-    console.error('Impossible de charger la tendance du dashboard.', err);
     wrap.hidden = true;
-    emptyEl.hidden = false;
+    errorEl.hidden = false;
   }
 }
 
