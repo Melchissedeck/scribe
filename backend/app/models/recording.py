@@ -37,12 +37,6 @@ class Recording(Base):
         nullable=True,
     )
 
-    # 'in_person' | 'remote' | None
-    meeting_type = Column(
-        String(20),
-        nullable=True,
-    )
-
     # pending | active | stopped | error
     status = Column(
         String(20),
