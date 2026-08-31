@@ -3,6 +3,7 @@ import {
   updateMeetingTheme, updateActionStatus, exportMeetingPdf, exportDocx,
   getDiarizeStatus, anonymizeMeeting, ApiError,
 } from './api.js';
+import { confirmModal } from './modal.js';
 import './sidebar.js';
 import './theme.js';
 
@@ -152,6 +153,18 @@ function renderMeta(details) {
   const participantsTxt = participants > 0 ? ` · ${participants} participant${participants > 1 ? 's' : ''}` : '';
 
   metaEl.textContent = `${date}${duration}${participantsTxt}`;
+
+  renderTypeBadge(details.meeting_type);
+}
+
+function renderTypeBadge(type) {
+  const el = document.getElementById('cr-type-badge');
+  if (!el) return;
+  if (type === 'in_person') {
+    el.innerHTML = '<span class="meeting-type-badge meeting-type-badge--in-person"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Présentiel</span>';
+  } else {
+    el.innerHTML = '<span class="meeting-type-badge meeting-type-badge--remote"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>À distance</span>';
+  }
 }
 
 function renderMarkdown(el, text) {
@@ -356,10 +369,11 @@ document.getElementById('btn-copy').addEventListener('click', () => {
 document.getElementById('btn-fab').addEventListener('click', (e) => downloadPdf(e.currentTarget));
 
 document.getElementById('btn-anonymize').addEventListener('click', async (e) => {
-  const confirmed = window.confirm(
-    "Remplacer le nom des intervenants par des libellés génériques (Locuteur 1, Locuteur 2…) ?\n\n" +
-    "Cette action est irréversible : le nom d'origine ne sera plus jamais accessible.",
-  );
+  const confirmed = await confirmModal({
+    title: 'Anonymiser les intervenants ?',
+    message: 'Les noms seront remplacés par des libellés génériques (Locuteur 1, Locuteur 2…). Cette action est irréversible : le nom d\'origine ne sera plus jamais accessible.',
+    confirmLabel: 'Anonymiser',
+  });
   if (!confirmed) return;
 
   const button = e.currentTarget;
