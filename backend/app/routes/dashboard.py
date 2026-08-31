@@ -18,7 +18,7 @@ DEFAULT_WEEKS = 8
 @router.get('/trends', response_model=DashboardTrendsResponse)
 def get_dashboard_trends(
     granularity: Literal['day', 'week'] = Query(
-        default='week', description="'day' : semaine en cours jour par jour. 'week' : plusieurs semaines."
+        default='week', description="'day' : 7 derniers jours glissants (aujourd'hui inclus). 'week' : plusieurs semaines."
     ),
     periods: int = Query(
         default=DEFAULT_WEEKS, ge=1, le=52, description='Nombre de périodes à agréger (ignoré en granularité day, toujours 7 jours)'
@@ -34,12 +34,15 @@ def get_dashboard_trends(
     )
 
     today = date.today()
-    current_week_start = today - timedelta(days=today.weekday())
 
     if granularity == 'day':
-        period_starts = [current_week_start + timedelta(days=offset) for offset in range(7)]
+        # Fenêtre glissante des 7 derniers jours (aujourd'hui inclus), pas
+        # la semaine calendaire : sinon le graphe repart à zéro à chaque
+        # lundi même si des réunions ont eu lieu il y a 1 ou 2 jours.
+        period_starts = [today - timedelta(days=offset) for offset in range(6, -1, -1)]
         step = timedelta(days=1)
     else:
+        current_week_start = today - timedelta(days=today.weekday())
         period_starts = [current_week_start - timedelta(weeks=offset) for offset in range(periods - 1, -1, -1)]
         step = timedelta(days=7)
 
