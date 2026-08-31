@@ -1,4 +1,5 @@
 import { deleteAccount, ApiError } from './api.js';
+import { confirmModal } from './modal.js';
 import './sidebar.js';
 import './theme.js';
 
@@ -17,11 +18,11 @@ const deleteError = document.getElementById('delete-account-error');
 deleteButton.addEventListener('click', async () => {
   deleteError.textContent = '';
 
-  const confirmed = window.confirm(
-    'Voulez-vous vraiment supprimer définitivement votre compte ? ' +
-    'Toutes vos réunions, transcriptions et actions seront perdues. ' +
-    'Cette action est irréversible.',
-  );
+  const confirmed = await confirmModal({
+    title: 'Supprimer votre compte ?',
+    message: 'Toutes vos réunions, transcriptions et actions seront définitivement perdues. Cette action est irréversible.',
+    confirmLabel: 'Supprimer le compte',
+  });
 
   if (!confirmed) {
     return;
