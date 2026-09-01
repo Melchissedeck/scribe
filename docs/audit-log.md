@@ -31,12 +31,16 @@ curl -H "X-Admin-Key: $ADMIN_API_KEY" https://<backend>/admin/logs
 
 ## Politique de rétention
 
-- Les entrées sont conservées **12 mois glissants**, une durée jugée
-  suffisante pour une analyse d'incident a posteriori sans constituer une
-  conservation excessive au regard du RGPD (principe de minimisation).
-- Aucune purge automatique n'est encore en place (hors périmètre de ce
-  ticket) : une tâche planifiée supprimant les entrées de plus de 12 mois
-  est identifiée comme suite logique, à traiter dans un sprint ultérieur.
+- Les entrées sont conservées **12 mois glissants** (365 jours), une durée
+  jugée suffisante pour une analyse d'incident a posteriori sans
+  constituer une conservation excessive au regard du RGPD (principe de
+  minimisation).
+- Purge automatique en place : `app/services/log_retention_service.py`
+  (`purge_expired_logs`) supprime les entrées de plus de 365 jours,
+  exécutée une fois par jour par une tâche de fond démarrée au lancement
+  de l'application (`run_log_retention_loop`, voir `app/main.py`). Pas de
+  file de tâches externe : une simple boucle `asyncio` suffit vu la
+  fréquence (quotidienne) et le volume attendu.
 - Le journal n'a pas vocation à être exhaustif (pas de journalisation de
   chaque appel API) : il se limite aux deux événements sensibles au sens
   RGPD listés ci-dessus.
