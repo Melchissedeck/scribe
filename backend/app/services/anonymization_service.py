@@ -32,7 +32,6 @@ def anonymize_recording(db: Session, recording_id: int) -> None:
         new_label = f'Locuteur {index}'
         label_map[speaker.provisional_name] = new_label
         speaker.provisional_name = new_label
-        speaker.real_name = None
 
     if label_map:
         segments = (

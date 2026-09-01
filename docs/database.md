@@ -39,8 +39,7 @@ Représente un intervenant identifié dans une réunion (locuteur), pour permett
 |---|---|---|---|
 | id | integer | primary key | Identifiant unique du locuteur |
 | recording_id | integer | foreign key → recordings.id, not null | Réunion à laquelle ce locuteur participe |
-| provisional_name | varchar(100) | not null | Nom attribué par défaut (ex: Locuteur A, Locuteur B) |
-| real_name | varchar(100) | nullable | Vrai nom de la personne, complété après identification |
+| provisional_name | varchar(100) | not null | Nom attribué par défaut (ex: Locuteur A, Locuteur B), ou nom fourni par Vexa pour les réunions visio |
 
 ## Table actions
 

@@ -90,7 +90,6 @@ class AnonymizeResponse(BaseModel):
 class SpeakerOut(BaseModel):
     id: int
     provisional_name: str
-    real_name: str | None = None
 
     model_config = {'from_attributes': True}
 

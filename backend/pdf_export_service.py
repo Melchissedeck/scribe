@@ -135,7 +135,7 @@ class PDFExportService:
 
         for action in actions:
             speaker = action.speaker
-            responsable = (speaker.real_name or speaker.provisional_name) if speaker else '—'
+            responsable = speaker.provisional_name if speaker else '—'
             status_label = STATUS_LABELS.get(str(action.status), str(action.status))
             due_date = action.due_date.strftime('%d/%m/%Y') if action.due_date else '—'
 

@@ -61,14 +61,12 @@ def run_action_extraction(db: Session, recording: Recording) -> list[Action]:
 
 def _match_speaker(responsable: str | None, speakers: list[Speaker]) -> Speaker | None:
     """Associe un nom de responsable à un Speaker existant de la réunion,
-    par correspondance insensible à la casse sur le nom réel ou provisoire."""
+    par correspondance insensible à la casse sur le nom provisoire."""
     if not responsable:
         return None
 
     normalized = responsable.strip().lower()
     for speaker in speakers:
-        if speaker.real_name and speaker.real_name.strip().lower() == normalized:
-            return speaker
         if speaker.provisional_name and speaker.provisional_name.strip().lower() == normalized:
             return speaker
 
