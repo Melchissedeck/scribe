@@ -1,5 +1,6 @@
 import logging
 import shutil
+from datetime import datetime
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -12,7 +13,7 @@ from app.models.recording import Recording
 from app.models.speaker import Speaker
 from app.models.transcript_segment import TranscriptSegment
 from app.models.user import User
-from app.schemas.user import UserRead, UserUpdate
+from app.schemas.user import ConsentResponse, UserRead, UserUpdate
 from app.services.audit_log_service import record_log
 
 logger = logging.getLogger(__name__)
@@ -64,6 +65,33 @@ def update_profile(
     db.refresh(current_user)
 
     return current_user
+
+
+@router.post('/me/consent', response_model=ConsentResponse)
+def give_consent(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> ConsentResponse:
+    """Enregistre le consentement RGPD de l'utilisateur connecté.
+
+    Appelée quand l'utilisateur valide l'écran de consentement, avant
+    toute captation. Idempotente : un appel répété met simplement à jour
+    l'horodatage. C'est cet enregistrement, vérifié côté serveur par la
+    dépendance require_consent, qui rend le consentement effectif plutôt
+    que purement déclaratif côté client.
+
+    Args:
+        db: Session de base de données injectée par FastAPI.
+        current_user: Utilisateur authentifié, résolu depuis le token JWT.
+
+    Returns:
+        L'horodatage du consentement enregistré.
+    """
+    current_user.consent_given_at = datetime.utcnow()
+    db.commit()
+    db.refresh(current_user)
+
+    return ConsentResponse(consent_given_at=current_user.consent_given_at)
 
 
 @router.delete('/me', status_code=status.HTTP_204_NO_CONTENT)

@@ -239,6 +239,7 @@ def test_transcribe_route_returns_502_on_corrupted_audio_without_crashing(client
         'password': 'testpass123',
     })
     headers = {'Authorization': f'Bearer {login.json()["access_token"]}'}
+    client.post('/users/me/consent', headers=headers)
 
     create_resp = client.post('/meetings', headers=headers)
     recording_id = create_resp.json()['recording_id']

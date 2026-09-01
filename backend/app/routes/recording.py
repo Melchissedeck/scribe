@@ -5,7 +5,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.database import SessionLocal, get_db
-from app.dependencies import get_current_user
+from app.dependencies import get_current_user, require_consent
 from app.exceptions import VexaConnectionError
 from app.models.recording import Recording
 from app.models.speaker import Speaker
@@ -90,7 +90,7 @@ def _save_diarized_segments(db: Session, recording_id: int, raw_segments: list[d
 def start_recording(
     payload: RecordingCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_consent),
 ):
     agent = VexaAgent()
     agent.send_bot(payload.platform, payload.native_meeting_id, payload.bot_name, payload.meeting_url)
