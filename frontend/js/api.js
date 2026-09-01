@@ -214,6 +214,10 @@ export function deleteAccount() {
   return apiRequest('/users/me', { method: 'DELETE' });
 }
 
+export function recordConsent() {
+  return apiRequest('/users/me/consent', { method: 'POST' });
+}
+
 export async function exportPdf(meetingId) {
   const token = sessionStorage.getItem('access_token');
   const response = await fetch(`${API_BASE_URL}/meetings/${meetingId}/export-pdf`, {

@@ -1,4 +1,4 @@
-﻿from fastapi import Depends
+﻿from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
@@ -42,3 +42,29 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
         raise InvalidCredentialsError()
 
     return user
+
+
+def require_consent(current_user: User = Depends(get_current_user)) -> User:
+    """Exige que l'utilisateur ait donné son consentement RGPD au moins une
+    fois, vérifié côté serveur (pas seulement l'écran de consentement
+    côté client, contournable via sessionStorage ou un appel API direct).
+
+    A ajouter en dépendance sur les routes qui démarrent une captation
+    (visio ou dictaphone).
+
+    Args:
+        current_user: Utilisateur authentifié, résolu depuis le token JWT.
+
+    Returns:
+        L'utilisateur authentifié, si le consentement a bien été donné.
+
+    Raises:
+        HTTPException: Code 403 si aucun consentement n'a jamais été
+            enregistré pour ce compte.
+    """
+    if current_user.consent_given_at is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail='Consentement RGPD requis avant de démarrer une captation.',
+        )
+    return current_user

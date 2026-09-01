@@ -5,7 +5,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, FastAPI, File, HTTPExce
 from sqlalchemy.orm import Session
 
 from app.database import SessionLocal, get_db
-from app.dependencies import get_current_user
+from app.dependencies import get_current_user, require_consent
 from app.models.recording import Recording
 from app.models.transcript_segment import TranscriptSegment
 from app.models.user import User
@@ -35,7 +35,7 @@ ALLOWED_EXTENSIONS = {
 @router.post("")
 def create_dictaphone_recording(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_consent),
 ):
     recording = Recording(
         user_id=current_user.id,

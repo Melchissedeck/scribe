@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from app.exceptions import VexaConnectionError, VexaInvalidMeetingError
+from app.schemas.llm_summary import StructuredSummary
 
 MOCK_SEGMENTS = [{'speaker': 'Speaker 1', 'text': 'Bonjour', 'start': 0.0, 'end': 1.0}]
 MOCK_TRANSCRIPT = 'Speaker 1 : Bonjour'
@@ -25,7 +26,9 @@ def _auth_headers(client):
         'email': 'test@example.com',
         'password': 'testpass123',
     })
-    return {'Authorization': f'Bearer {resp.json()["access_token"]}'}
+    headers = {'Authorization': f'Bearer {resp.json()["access_token"]}'}
+    client.post('/users/me/consent', headers=headers)
+    return headers
 
 
 def _start_session(client, headers, mock_agent):
@@ -36,16 +39,24 @@ def _start_session(client, headers, mock_agent):
 
 
 def _mock_anthropic_client():
-    # stop_recording() déclenche la génération automatique du résumé en
-    # tâche de fond une fois la transcription récupérée : sans ce mock,
-    # ces tests feraient un vrai appel réseau à l'API Anthropic.
+    # stop_recording() déclenche en tâche de fond, une fois la transcription
+    # récupérée, à la fois le résumé libre (generate_summary,
+    # client.messages.create) et l'extraction structurée (
+    # generate_structured_summary, client.messages.parse) : sans mocker les
+    # deux, ces tests feraient un vrai appel réseau ou planteraient sur un
+    # MagicMock non sérialisable JSON lors de l'écriture en base.
     fake_block = MagicMock()
     fake_block.type = 'text'
     fake_block.text = 'Résumé de test.'
     fake_response = MagicMock()
     fake_response.content = [fake_block]
+
+    fake_parsed_response = MagicMock()
+    fake_parsed_response.parsed_output = StructuredSummary()
+
     mock_client = MagicMock()
     mock_client.messages.create.return_value = fake_response
+    mock_client.messages.parse.return_value = fake_parsed_response
     return mock_client
 
 
