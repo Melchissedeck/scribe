@@ -6,14 +6,13 @@ from sqlalchemy.orm import Session
 
 from app.database import SessionLocal, get_db
 from app.dependencies import get_current_user
-from app.exceptions import LLMError, VexaConnectionError
+from app.exceptions import VexaConnectionError
 from app.models.recording import Recording
 from app.models.speaker import Speaker
 from app.models.transcript_segment import TranscriptSegment
 from app.models.user import User
 from app.schemas.recording import RecordingCreate, RecordingRead
-from app.services.action_extraction_service import run_action_extraction
-from app.services.summary_generation_service import run_summary_generation
+from app.services.post_meeting_processing_service import run_post_meeting_processing
 from vexa_agent import VexaAgent
 
 logger = logging.getLogger(__name__)
@@ -110,7 +109,11 @@ def start_recording(
 
 
 def _fetch_final_transcript(recording_id: int, platform: str, native_meeting_id: str) -> None:
+    """Récupère la transcription diarisée finale depuis Vexa, puis délègue
+    le résumé et l'extraction d'actions à run_post_meeting_processing,
+    partagée avec le pipeline dictaphone plutôt que dupliquée ici."""
     db = SessionLocal()
+    got_transcript = False
     try:
         agent = VexaAgent()
         raw_segments = agent.get_diarized_segments(platform, native_meeting_id)
@@ -120,20 +123,16 @@ def _fetch_final_transcript(recording_id: int, platform: str, native_meeting_id:
             recording.transcript = transcript
             _save_diarized_segments(db, recording_id, raw_segments)
             db.commit()
-            try:
-                run_summary_generation(db, recording)
-            except LLMError:
-                pass  # déjà loggué et le statut "failed" déjà enregistré
-            try:
-                run_action_extraction(db, recording)
-            except LLMError:
-                pass  # déjà loggué par LLMService
+            got_transcript = True
     except VexaConnectionError:
         logger.warning('Transcription Vexa indisponible pour la session %s', recording_id)
     except Exception as exc:
         logger.error('Erreur inattendue lors de la récupération finale de la transcription: %s', exc)
     finally:
         db.close()
+
+    if got_transcript:
+        run_post_meeting_processing(recording_id)
 
 
 @router.post('/{recording_id}/stop', response_model=RecordingRead)
