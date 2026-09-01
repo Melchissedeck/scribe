@@ -1,5 +1,6 @@
 ﻿# Point d'entree de l'application FastAPI
 
+import asyncio
 from contextlib import asynccontextmanager
 
 import sentry_sdk
@@ -27,6 +28,7 @@ from app.routes import (
     summary,
     users,
 )
+from app.services.log_retention_service import run_log_retention_loop
 
 # No-op si SENTRY_DSN est vide (pas de projet Sentry configure) : voir
 # app/config.py. traces_sample_rate a 100% est volontaire vu le volume de
@@ -45,8 +47,13 @@ async def lifespan(app: FastAPI):
     # app.services.pyannote_service.get_pyannote_service().
     app.state.pyannote_service = None
 
+    # Purge automatique du journal d'audit (politique de rétention de 12
+    # mois, voir docs/audit-log.md) : tâche de fond tant que l'app tourne.
+    retention_task = asyncio.create_task(run_log_retention_loop())
+
     yield
 
+    retention_task.cancel()
     # Libère la référence au pipeline à l'arrêt
     app.state.pyannote_service = None
 
