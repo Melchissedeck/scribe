@@ -21,7 +21,7 @@ def _make_recording(db_session, real_speaker_names: list[str]) -> Recording:
     db_session.flush()
 
     for name in real_speaker_names:
-        db_session.add(Speaker(recording_id=recording.id, provisional_name=name, real_name=name))
+        db_session.add(Speaker(recording_id=recording.id, provisional_name=name))
         db_session.add(TranscriptSegment(
             recording_id=recording.id,
             speaker=name,
@@ -48,7 +48,6 @@ def test_anonymize_recording_replaces_speaker_and_segment_names(db_session):
     )
 
     assert [s.provisional_name for s in speakers] == ['Locuteur 1', 'Locuteur 2']
-    assert all(s.real_name is None for s in speakers)
     assert [seg.speaker for seg in segments] == ['Locuteur 1', 'Locuteur 2']
     # Le texte des segments (contenu de la transcription) n'est pas touché :
     # seule l'attribution du locuteur est anonymisée, pas le contenu parlé.
