@@ -437,7 +437,7 @@ def export_docx(
             for action in actions:
                 row = table.add_row().cells
                 speaker = action.speaker
-                responsable = (speaker.real_name or speaker.provisional_name) if speaker else '—'
+                responsable = speaker.provisional_name if speaker else '—'
                 row[0].text = str(action.description)
                 row[1].text = responsable
                 row[2].text = _STATUS_LABELS.get(action.status, action.status)
