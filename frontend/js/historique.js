@@ -11,6 +11,8 @@ const paginationEl = document.getElementById('pagination');
 
 const searchInput  = document.getElementById('filter-search');
 const dateSelect   = document.getElementById('filter-date');
+const themeInput   = document.getElementById('filter-theme');
+const statusSelect = document.getElementById('filter-status');
 
 if (!sessionStorage.getItem('access_token')) {
   window.location.href = 'login.html';
@@ -26,7 +28,7 @@ let currentPage = 1;
 let allMeetings = [];
 let filteredMeetings = [];
 
-const activeFilters = { search: '', date: '' };
+const activeFilters = { search: '', date: '', theme: '', status: '' };
 
 // ── Chargement initial ────────────────────────────────────────────────────────
 
@@ -61,6 +63,20 @@ dateSelect.addEventListener('change', () => {
   applyFilters();
 });
 
+let themeDebounce = null;
+themeInput.addEventListener('input', () => {
+  clearTimeout(themeDebounce);
+  themeDebounce = setTimeout(() => {
+    activeFilters.theme = themeInput.value.trim().toLowerCase();
+    applyFilters();
+  }, 200);
+});
+
+statusSelect.addEventListener('change', () => {
+  activeFilters.status = statusSelect.value;
+  applyFilters();
+});
+
 
 // ── Filtrage ──────────────────────────────────────────────────────────────────
 
@@ -86,6 +102,13 @@ function applyFilters() {
       if (activeFilters.date === 'week'  && mDate < weekStart)  return false;
       if (activeFilters.date === 'month' && mDate < monthStart) return false;
     }
+
+    if (activeFilters.theme) {
+      const theme = (m.theme || '').toLowerCase();
+      if (!theme.includes(activeFilters.theme)) return false;
+    }
+
+    if (activeFilters.status && m.summary_status !== activeFilters.status) return false;
 
     return true;
   });
@@ -130,7 +153,7 @@ function renderMeetings(meetings) {
   emptyState.hidden = true;
   errorState.hidden = true;
 
-  const hasActiveFilter = activeFilters.search || activeFilters.date;
+  const hasActiveFilter = activeFilters.search || activeFilters.date || activeFilters.theme || activeFilters.status;
 
   if (hasActiveFilter) {
     const total = filteredMeetings.length;
