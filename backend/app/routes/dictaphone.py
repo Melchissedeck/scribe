@@ -39,6 +39,11 @@ def create_dictaphone_recording(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_consent),
 ):
+    """Crée un nouvel enregistrement dictaphone en attente d'un fichier audio.
+
+    Returns:
+        L'identifiant et le statut de l'enregistrement créé.
+    """
     recording = Recording(
         user_id=current_user.id,
         platform="dictaphone",
@@ -64,6 +69,24 @@ async def upload_audio(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    """Reçoit et enregistre sur disque le fichier audio d'un enregistrement dictaphone.
+
+    Le fichier est sauvegardé sous `UPLOAD_DIR/{recording_id}/` et la durée
+    de l'enregistrement est déduite de l'audio pour renseigner
+    `stopped_at` (échec silencieux si la durée ne peut être calculée).
+
+    Args:
+        recording_id: Identifiant de l'enregistrement concerné.
+        audio: Fichier audio envoyé par le client.
+
+    Returns:
+        Les informations du fichier audio reçu (identifiant, nom, chemin, message).
+
+    Raises:
+        HTTPException: 404 si l'enregistrement est introuvable ; 400 si
+            aucun fichier n'est fourni ou si son format n'est pas
+            supporté ; 500 si la sauvegarde du fichier échoue.
+    """
     recording = (
         db.query(Recording)
         .filter(
@@ -130,6 +153,18 @@ def transcribe_audio(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    """Transcrit le fichier audio d'un enregistrement dictaphone via Whisper.
+
+    Args:
+        recording_id: Identifiant de l'enregistrement concerné.
+
+    Returns:
+        L'identifiant de l'enregistrement et la transcription obtenue.
+
+    Raises:
+        HTTPException: 404 si l'enregistrement ou son fichier audio est
+            introuvable ; 502 si la transcription échoue.
+    """
     recording = (
         db.query(Recording)
         .filter(
@@ -270,6 +305,21 @@ def diarize_audio(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    """Lance en tâche de fond la diarisation du fichier audio d'un enregistrement.
+
+    Marque l'enregistrement en statut de diarisation 'processing' puis
+    délègue le traitement (transcription horodatée + diarisation Pyannote)
+    à `run_diarization`, exécuté via `BackgroundTasks`.
+
+    Args:
+        recording_id: Identifiant de l'enregistrement concerné.
+
+    Returns:
+        L'identifiant de l'enregistrement et son nouveau statut de diarisation.
+
+    Raises:
+        HTTPException: 404 si l'enregistrement ou son fichier audio est introuvable.
+    """
     recording = (
         db.query(Recording)
         .filter(
@@ -325,6 +375,18 @@ def get_diarize_status(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    """Récupère le statut de diarisation d'un enregistrement et ses segments si terminée.
+
+    Args:
+        recording_id: Identifiant de l'enregistrement concerné.
+
+    Returns:
+        Le statut de diarisation, avec la liste des segments si le
+        traitement est terminé (liste vide sinon).
+
+    Raises:
+        HTTPException: 404 si l'enregistrement est introuvable.
+    """
     recording = (
         db.query(Recording)
         .filter(

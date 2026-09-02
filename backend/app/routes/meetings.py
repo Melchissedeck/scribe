@@ -39,6 +39,15 @@ _STATUS_LABELS = {'todo': 'À faire', 'in_progress': 'En cours', 'done': 'Termin
 
 
 def _build_excerpt(summary: str | None) -> str | None:
+    """Tronque un résumé à `EXCERPT_LENGTH` caractères pour l'affichage en liste.
+
+    Args:
+        summary: Résumé complet de la réunion, éventuellement absent.
+
+    Returns:
+        Le résumé tel quel s'il tient déjà dans la limite, une version
+        tronquée suivie de '...' sinon, ou None si aucun résumé n'existe.
+    """
     if not summary:
         return None
     if len(summary) <= EXCERPT_LENGTH:
@@ -54,6 +63,16 @@ def list_meetings(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    """Liste les réunions de l'utilisateur courant, avec filtres optionnels.
+
+    Args:
+        theme: Filtre sur le thème (recherche partielle, insensible à la casse).
+        date_from: Ne renvoie que les réunions à partir de cette date (incluse).
+        date_to: Ne renvoie que les réunions jusqu'à cette date (incluse).
+
+    Returns:
+        Liste des réunions correspondantes, triées par date décroissante.
+    """
     query = db.query(Recording).filter(Recording.user_id == current_user.id)
 
     if theme:
@@ -93,6 +112,18 @@ def update_meeting_theme(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    """Met à jour le thème d'une réunion appartenant à l'utilisateur courant.
+
+    Args:
+        meeting_id: Identifiant de la réunion.
+        payload: Nouveau thème à appliquer (vide ou blanc efface le thème).
+
+    Returns:
+        L'identifiant de la réunion et son thème mis à jour.
+
+    Raises:
+        HTTPException: 404 si la réunion est introuvable ou n'appartient pas à l'utilisateur.
+    """
     recording = db.query(Recording).filter(
         Recording.id == meeting_id, Recording.user_id == current_user.id
     ).first()
@@ -112,6 +143,18 @@ def get_speaking_time(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    """Calcule le temps de parole de chaque locuteur d'une réunion.
+
+    Args:
+        meeting_id: Identifiant de la réunion.
+
+    Returns:
+        Le temps de parole (en secondes et en pourcentage) par locuteur,
+        du plus bavard au moins bavard.
+
+    Raises:
+        HTTPException: 404 si la réunion est introuvable ou n'appartient pas à l'utilisateur.
+    """
     recording = db.query(Recording).filter(
         Recording.id == meeting_id, Recording.user_id == current_user.id
     ).first()
@@ -150,6 +193,18 @@ def get_diarized_transcript(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    """Récupère la transcription diarisée d'une réunion, segment par segment.
+
+    Args:
+        meeting_id: Identifiant de la réunion.
+
+    Returns:
+        La liste des segments diarisés (locuteur et texte).
+
+    Raises:
+        HTTPException: 404 si la réunion est introuvable, n'appartient pas
+            à l'utilisateur, ou si aucune diarisation n'est disponible.
+    """
     recording = (
         db.query(Recording)
         .filter(Recording.id == meeting_id, Recording.user_id == current_user.id)
@@ -186,6 +241,22 @@ def classify_segments(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    """Classifie chaque segment diarisé d'une réunion via le LLM (ton, thème, urgence).
+
+    Les classifications obtenues sont enregistrées sur les segments en base.
+
+    Args:
+        meeting_id: Identifiant de la réunion.
+
+    Returns:
+        Les segments de la réunion, avec leur classification.
+
+    Raises:
+        HTTPException: 404 si la réunion est introuvable ou n'appartient
+            pas à l'utilisateur ; 400 si aucune transcription diarisée
+            n'est disponible ; 502 si le service de classification est
+            momentanément indisponible.
+    """
     recording = (
         db.query(Recording)
         .filter(Recording.id == meeting_id, Recording.user_id == current_user.id)
@@ -248,6 +319,18 @@ def get_segments_classification(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    """Récupère la classification déjà calculée des segments diarisés d'une réunion.
+
+    Args:
+        meeting_id: Identifiant de la réunion.
+
+    Returns:
+        Les segments de la réunion, avec leur classification.
+
+    Raises:
+        HTTPException: 404 si la réunion est introuvable, n'appartient pas
+            à l'utilisateur, ou si aucune diarisation n'est disponible.
+    """
     recording = (
         db.query(Recording)
         .filter(Recording.id == meeting_id, Recording.user_id == current_user.id)
@@ -328,6 +411,17 @@ def get_meeting_details(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    """Récupère le détail complet d'une réunion (locuteurs, segments, actions).
+
+    Args:
+        meeting_id: Identifiant de la réunion.
+
+    Returns:
+        Les informations détaillées de la réunion.
+
+    Raises:
+        HTTPException: 404 si la réunion est introuvable ou n'appartient pas à l'utilisateur.
+    """
     recording = (
         db.query(Recording)
         .filter(Recording.id == meeting_id, Recording.user_id == current_user.id)
@@ -365,6 +459,23 @@ def export_docx(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> StreamingResponse:
+    """Génère et retourne le compte-rendu d'une réunion au format Word (.docx).
+
+    Le document inclut le titre, la date, le résumé (converti depuis le
+    Markdown) et le plan d'action sous forme de tableau.
+
+    Args:
+        meeting_id: Identifiant de la réunion.
+
+    Returns:
+        Le fichier .docx généré, en réponse de type flux (streaming).
+
+    Raises:
+        HTTPException: 404 si la réunion est introuvable ou n'appartient
+            pas à l'utilisateur ; 503 si le module de génération Word
+            n'est pas disponible sur le serveur ; 500 si la génération du
+            fichier échoue.
+    """
     recording = (
         db.query(Recording)
         .filter(Recording.id == meeting_id, Recording.user_id == current_user.id)
@@ -383,6 +494,16 @@ def export_docx(
         raise HTTPException(status_code=503, detail='Module Word non disponible sur ce serveur.') from exc
 
     def _add_md_paragraph(doc, text: str, style: str = 'Normal'):
+        """Ajoute un paragraphe au document Word en convertissant le **gras** Markdown.
+
+        Args:
+            doc: Document Word en cours de construction.
+            text: Texte du paragraphe, pouvant contenir des séquences `**gras**`.
+            style: Style de paragraphe Word à appliquer.
+
+        Returns:
+            Le paragraphe ajouté au document.
+        """
         parts = _re.split(r'\*\*(.+?)\*\*', text)
         p = doc.add_paragraph(style=style)
         for i, part in enumerate(parts):
@@ -392,6 +513,16 @@ def export_docx(
         return p
 
     def _add_md_summary(doc, summary: str):
+        """Convertit un résumé au format Markdown en titres et paragraphes Word.
+
+        Interprète les titres (`#`, `##`, `###`) et les listes à puces
+        (`-`, `*`) ligne par ligne ; toute autre ligne devient un
+        paragraphe normal (voir `_add_md_paragraph`).
+
+        Args:
+            doc: Document Word en cours de construction.
+            summary: Résumé au format Markdown à convertir.
+        """
         for line in summary.split('\n'):
             line = line.rstrip()
             if not line:
@@ -466,6 +597,17 @@ def delete_meeting(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> Response:
+    """Supprime définitivement une réunion et toutes ses données associées.
+
+    Supprime en cascade les actions, segments de transcription et
+    locuteurs liés à la réunion avant de supprimer la réunion elle-même.
+
+    Args:
+        meeting_id: Identifiant de la réunion à supprimer.
+
+    Raises:
+        HTTPException: 404 si la réunion est introuvable ou n'appartient pas à l'utilisateur.
+    """
     recording = db.query(Recording).filter(
         Recording.id == meeting_id, Recording.user_id == current_user.id
     ).first()
@@ -486,6 +628,17 @@ def export_meeting_pdf(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    """Génère et retourne le compte-rendu d'une réunion au format PDF.
+
+    Args:
+        meeting_id: Identifiant de la réunion.
+
+    Returns:
+        Le fichier PDF généré, en pièce jointe.
+
+    Raises:
+        HTTPException: 404 si la réunion est introuvable ou n'appartient pas à l'utilisateur.
+    """
     recording = (
         db.query(Recording)
         .filter(Recording.id == meeting_id, Recording.user_id == current_user.id)

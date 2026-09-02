@@ -26,6 +26,18 @@ def get_dashboard_trends(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    """Agrège le nombre de réunions et d'actions par période pour le tableau de bord.
+
+    Args:
+        granularity: 'day' pour les 7 derniers jours glissants (aujourd'hui
+            inclus), 'week' pour plusieurs semaines calendaires.
+        periods: Nombre de périodes à agréger (ignoré en granularité 'day',
+            toujours 7 jours dans ce cas).
+
+    Returns:
+        Les points de tendance (nombre de réunions et d'actions par
+        période) pour l'utilisateur courant.
+    """
     recordings = (
         db.query(Recording)
         .filter(Recording.user_id == current_user.id)
