@@ -312,7 +312,8 @@ def diarize_audio(
 
     Marque l'enregistrement en statut de diarisation 'processing' puis
     délègue le traitement (transcription horodatée + diarisation Pyannote)
-    à `run_diarization`, exécuté via `BackgroundTasks`.
+    à `_process_dictaphone_diarization`, exécuté en tâche de fond via
+    `run_capture_background_job` (abstraction commune avec le pipeline visio).
 
     Args:
         recording_id: Identifiant de l'enregistrement concerné.
