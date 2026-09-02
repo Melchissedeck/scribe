@@ -34,7 +34,7 @@ Ces trois commandes s'exécutent automatiquement sur chaque pull request vers
 ## Déploiement
 
 L'application tourne en ligne sur Railway, déployée automatiquement depuis
-`dev` :
+`main` :
 
 - Backend : https://scribe-production-a094.up.railway.app (healthcheck sur
   `/health`, documentation interactive sur `/docs`)
@@ -55,15 +55,10 @@ Trois services Railway dans le même projet :
 
 Chaque service a **"Wait for CI to pass"** activé (Settings → Source) : un
 déploiement ne part que si `.github/workflows/ci.yml` est passé au vert sur
-le commit poussé, ce qui répond à l'exigence "déploiement automatique après
-succès des tests" sans dépendre de la branche `main` (volontairement vide
-jusqu'à la toute fin du projet — voir `CLAUDE.md`). Le pipeline pyannote
-(torch) n'est chargé qu'à la première diarisation dictaphone, pas au
-démarrage, pour limiter l'empreinte mémoire.
-
-Quand `main` recevra le merge final, le plus simple sera de répéter la
-même configuration (nouveau service ou branche source changée) plutôt que
-de reconfigurer quoi que ce soit d'existant.
+le commit poussé sur `main`, ce qui répond à l'exigence "déploiement
+automatique après succès des tests". Le pipeline pyannote (torch) n'est
+chargé qu'à la première diarisation dictaphone, pas au démarrage, pour
+limiter l'empreinte mémoire.
 
 ## Structure du projet
 
