@@ -9,6 +9,7 @@ from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.action import Action
 from app.models.recording import Recording
+from app.models.speaker import Speaker
 from app.models.transcript_segment import TranscriptSegment
 from app.models.user import User
 from app.schemas.action import ActionResponse
@@ -78,7 +79,7 @@ def list_meetings(
             duration_minutes=(
                 (recording.stopped_at - recording.started_at).total_seconds() / 60
                 if recording.stopped_at
-                else None
+                else 0
             ),
         )
         for recording in recordings
@@ -471,6 +472,9 @@ def delete_meeting(
     if not recording:
         raise HTTPException(status_code=404, detail='Réunion introuvable.')
 
+    db.query(Action).filter(Action.recording_id == meeting_id).delete()
+    db.query(TranscriptSegment).filter(TranscriptSegment.recording_id == meeting_id).delete()
+    db.query(Speaker).filter(Speaker.recording_id == meeting_id).delete()
     db.delete(recording)
     db.commit()
     return Response(status_code=204)
