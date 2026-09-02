@@ -21,12 +21,18 @@ router = APIRouter(prefix='/recording', tags=['recording'])
 
 
 def _deduplicate_segments(raw_segments: list[dict]) -> list[dict]:
-    """Supprime les segments redondants.
+    """Supprime les segments redondants retournés par Vexa.
 
     Vexa retourne un transcript cumulatif et peut renvoyer le même contenu
     d'abord sous forme d'un grand bloc, puis redécoupé en petits segments.
-    On filtre : doublons exacts consécutifs ET segments dont le texte est
-    un sous-ensemble d'un segment existant du même locuteur.
+    On filtre les doublons exacts consécutifs et les segments dont le texte
+    est un sous-ensemble d'un segment existant du même locuteur.
+
+    Args:
+        raw_segments: Liste brute des segments retournés par l'API Vexa.
+
+    Returns:
+        Liste dédoublonnée conservant l'ordre chronologique.
     """
     clean: list[dict] = []
     for seg in raw_segments:
@@ -49,8 +55,17 @@ def _deduplicate_segments(raw_segments: list[dict]) -> list[dict]:
 
 
 def _save_diarized_segments(db: Session, recording_id: int, raw_segments: list[dict]) -> None:
-    # Vide les segments existants avant de réinsérer : Vexa est cumulatif,
-    # chaque appel contient tous les segments depuis le début de la réunion.
+    """Persiste les segments diarisés en base après dédoublonnage.
+
+    Vide les segments existants avant réinsertion : Vexa étant cumulatif,
+    chaque appel contient tous les segments depuis le début de la réunion.
+    Crée les entrées Speaker manquantes à la volée.
+
+    Args:
+        db: Session de base de données.
+        recording_id: Identifiant de la réunion concernée.
+        raw_segments: Segments bruts retournés par l'API Vexa.
+    """
     db.query(TranscriptSegment).filter(TranscriptSegment.recording_id == recording_id).delete()
     db.flush()
 
@@ -92,6 +107,20 @@ def start_recording(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_consent),
 ):
+    """Démarre une session d'enregistrement visio via le bot Vexa.
+
+    Args:
+        payload: Plateforme, identifiant natif, nom du bot et URL optionnelle.
+        db: Session de base de données injectée par FastAPI.
+        current_user: Utilisateur authentifié ayant donné son consentement RGPD.
+
+    Returns:
+        L'enregistrement créé avec le statut 'active'.
+
+    Raises:
+        HTTPException: 422 si le lien de réunion est invalide.
+        HTTPException: 503 si l'API Vexa est inaccessible.
+    """
     agent = VexaAgent()
     agent.send_bot(payload.platform, payload.native_meeting_id, payload.bot_name, payload.meeting_url)
 
@@ -109,9 +138,18 @@ def start_recording(
 
 
 def _fetch_final_transcript(recording_id: int, platform: str, native_meeting_id: str) -> None:
-    """Récupère la transcription diarisée finale depuis Vexa, puis délègue
-    le résumé et l'extraction d'actions à run_post_meeting_processing,
-    partagée avec le pipeline dictaphone plutôt que dupliquée ici."""
+    """Récupère la transcription diarisée finale depuis Vexa en tâche de fond.
+
+    Appelée via BackgroundTasks après l'arrêt du bot. Ouvre sa propre session
+    DB car la session de la requête d'origine est déjà fermée. Délègue ensuite
+    le résumé et l'extraction d'actions à run_post_meeting_processing, commune
+    au pipeline dictaphone.
+
+    Args:
+        recording_id: Identifiant de la réunion en base.
+        platform: Plateforme de visioconférence (ex. 'google_meet').
+        native_meeting_id: Identifiant natif de la réunion sur la plateforme.
+    """
     db = SessionLocal()
     got_transcript = False
     try:
@@ -142,6 +180,24 @@ def stop_recording(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    """Arrête le bot Vexa et déclenche la récupération de la transcription finale.
+
+    La transcription est récupérée en tâche de fond pour ne pas bloquer la
+    réponse HTTP. Le résumé et les actions sont générés à la suite.
+
+    Args:
+        recording_id: Identifiant de la session à arrêter.
+        background_tasks: Gestionnaire de tâches de fond FastAPI.
+        db: Session de base de données injectée par FastAPI.
+        current_user: Utilisateur authentifié, résolu depuis le token JWT.
+
+    Returns:
+        L'enregistrement mis à jour avec le statut 'stopped'.
+
+    Raises:
+        HTTPException: 404 si la session est introuvable.
+        HTTPException: 400 si la session n'est pas active.
+    """
     recording = db.query(Recording).filter(
         Recording.id == recording_id,
         Recording.user_id == current_user.id,
@@ -175,6 +231,20 @@ def refresh_transcript(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    """Rafraîchit la transcription d'une session en cours depuis Vexa.
+
+    Args:
+        recording_id: Identifiant de la session.
+        db: Session de base de données injectée par FastAPI.
+        current_user: Utilisateur authentifié, résolu depuis le token JWT.
+
+    Returns:
+        L'enregistrement avec la transcription mise à jour.
+
+    Raises:
+        HTTPException: 404 si la session est introuvable.
+        HTTPException: 503 si l'API Vexa est temporairement indisponible.
+    """
     recording = db.query(Recording).filter(
         Recording.id == recording_id,
         Recording.user_id == current_user.id,
@@ -199,6 +269,15 @@ def list_recordings(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    """Liste toutes les sessions d'enregistrement de l'utilisateur connecté.
+
+    Args:
+        db: Session de base de données injectée par FastAPI.
+        current_user: Utilisateur authentifié, résolu depuis le token JWT.
+
+    Returns:
+        Liste des enregistrements triés par date décroissante.
+    """
     return (
         db.query(Recording)
         .filter(Recording.user_id == current_user.id)

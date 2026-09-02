@@ -37,6 +37,8 @@ def _http_call_with_retry(fn):
 
 
 class VexaAgent:
+    """Client HTTP pour l'API Vexa — envoie le bot et récupère les transcriptions."""
+
     def __init__(self):
         self.base_url = 'https://api.cloud.vexa.ai'
         self.headers = {
@@ -45,6 +47,21 @@ class VexaAgent:
         }
 
     def send_bot(self, platform: str, meeting_id: str, bot_name: str = 'Scribe', meeting_url: str | None = None) -> dict:
+        """Envoie le bot Vexa dans une réunion.
+
+        Args:
+            platform: Plateforme de visioconférence (ex. 'google_meet', 'teams').
+            meeting_id: Identifiant natif de la réunion sur la plateforme.
+            bot_name: Nom affiché par le bot dans la réunion.
+            meeting_url: URL directe de la réunion (prioritaire sur platform + meeting_id).
+
+        Returns:
+            La réponse JSON de l'API Vexa confirmant l'envoi du bot.
+
+        Raises:
+            VexaInvalidMeetingError: Si le lien de réunion est invalide (HTTP 422).
+            VexaConnectionError: Si l'API est inaccessible ou renvoie une erreur HTTP.
+        """
         if meeting_url:
             payload: dict = {'meeting_url': meeting_url, 'bot_name': bot_name}
         else:
@@ -66,6 +83,18 @@ class VexaAgent:
             raise VexaConnectionError() from exc
 
     def stop_bot(self, platform: str, meeting_id: str) -> int:
+        """Retire le bot Vexa d'une réunion en cours.
+
+        Args:
+            platform: Plateforme de visioconférence.
+            meeting_id: Identifiant natif de la réunion.
+
+        Returns:
+            Le code HTTP retourné par l'API Vexa (typiquement 200).
+
+        Raises:
+            VexaConnectionError: Si l'API est inaccessible ou renvoie une erreur HTTP.
+        """
         try:
             response = _http_call_with_retry(
                 lambda: requests.delete(
@@ -82,6 +111,21 @@ class VexaAgent:
             raise VexaConnectionError() from exc
 
     def get_transcript(self, platform: str, meeting_id: str) -> str:
+        """Retourne la transcription formatée sous forme de texte brut.
+
+        Chaque segment est rendu sur une ligne au format « Locuteur : texte ».
+        Les segments sans contenu textuel sont ignorés.
+
+        Args:
+            platform: Plateforme de visioconférence.
+            meeting_id: Identifiant natif de la réunion.
+
+        Returns:
+            Transcription complète, une ligne par segment, séparées par \\n.
+
+        Raises:
+            VexaConnectionError: Si l'API est inaccessible ou renvoie une erreur HTTP.
+        """
         segments = self._fetch_segments(platform, meeting_id)
         lines = []
         for seg in segments:
@@ -92,10 +136,33 @@ class VexaAgent:
         return '\n'.join(lines)
 
     def get_diarized_segments(self, platform: str, meeting_id: str) -> list[dict]:
-        """Retourne les segments bruts avec speaker label, text, start et end (secondes)."""
+        """Retourne les segments diarisés bruts de la réunion.
+
+        Args:
+            platform: Plateforme de visioconférence.
+            meeting_id: Identifiant natif de la réunion.
+
+        Returns:
+            Liste de segments, chacun contenant speaker, text, start et end (secondes).
+
+        Raises:
+            VexaConnectionError: Si l'API est inaccessible ou renvoie une erreur HTTP.
+        """
         return self._fetch_segments(platform, meeting_id)
 
     def _fetch_segments(self, platform: str, meeting_id: str) -> list[dict]:
+        """Appelle l'API Vexa et retourne la liste brute des segments.
+
+        Args:
+            platform: Plateforme de visioconférence.
+            meeting_id: Identifiant natif de la réunion.
+
+        Returns:
+            Liste des segments retournés par l'API, vide si la clé 'segments' est absente.
+
+        Raises:
+            VexaConnectionError: Si l'API est inaccessible ou renvoie une erreur HTTP.
+        """
         try:
             response = _http_call_with_retry(
                 lambda: requests.get(
