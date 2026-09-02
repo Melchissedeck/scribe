@@ -41,12 +41,20 @@ _CHUNK_DURATION_MS = 8 * 60 * 1000
 _TARGET_FRAME_RATE = 16000
 _TARGET_SAMPLE_WIDTH = 2
 
+# Un appel de transcription sur une tranche de 8 minutes peut prendre du
+# temps sous charge ; sans timeout explicite, le client Groq attend le
+# defaut du SDK (tres long), ce qui laisse une requete bloquee indefiniment
+# en cas d'indisponibilite reseau silencieuse plutot que de declencher le
+# mecanisme de retry ci-dessous.
+_REQUEST_TIMEOUT_S = 120.0
+
 
 class WhisperService:
 
     def __init__(self):
         self.client = Groq(
-            api_key=settings.groq_api_key
+            api_key=settings.groq_api_key,
+            timeout=_REQUEST_TIMEOUT_S,
         )
 
     def transcribe(self, audio_path: str) -> str:
