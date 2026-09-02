@@ -59,6 +59,17 @@ class PDFExportService:
         )
 
     def generate_pdf(self, recording: Recording) -> bytes:
+        """Génère le compte-rendu PDF d'une réunion.
+
+        Le document inclut le thème, la date, le résumé (converti depuis le
+        Markdown), les décisions et le tableau des actions.
+
+        Args:
+            recording: Réunion pour laquelle générer le compte-rendu.
+
+        Returns:
+            Le contenu binaire du fichier PDF généré.
+        """
         buffer = io.BytesIO()
         doc = SimpleDocTemplate(
             buffer,

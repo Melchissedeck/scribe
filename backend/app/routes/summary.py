@@ -17,6 +17,18 @@ def generate_summary(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    """Génère le résumé d'une réunion à partir de sa transcription.
+
+    Args:
+        meeting_id: Identifiant de la réunion.
+
+    Returns:
+        Le résumé généré pour la réunion.
+
+    Raises:
+        HTTPException: 404 si la réunion est introuvable ou n'appartient pas
+            à l'utilisateur ; 400 si aucune transcription n'est disponible.
+    """
     recording = (
         db.query(Recording)
         .filter(
@@ -46,6 +58,18 @@ def get_summary(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    """Récupère le résumé déjà généré d'une réunion.
+
+    Args:
+        meeting_id: Identifiant de la réunion.
+
+    Returns:
+        Le résumé de la réunion.
+
+    Raises:
+        HTTPException: 404 si la réunion est introuvable, n'appartient pas
+            à l'utilisateur, ou si aucun résumé n'est encore disponible.
+    """
     recording = (
         db.query(Recording)
         .filter(
