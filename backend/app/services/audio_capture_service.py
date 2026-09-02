@@ -35,6 +35,12 @@ def run_capture_background_job(recording_id: int, process: Callable[[Session, Re
             success = process(db, recording)
         else:
             logger.warning('Réunion %s introuvable pour la capture audio en tâche de fond', recording_id)
+    except Exception:
+        # Une tâche de fond qui laisse fuiter une exception (ex. base de
+        # données injoignable) ne doit jamais faire planter le worker qui
+        # l'exécute : on logue et on abandonne proprement, comme le ferait
+        # une source de capture en échec (`process` renvoie False).
+        logger.exception('Échec de la tâche de fond de capture audio pour la réunion %s', recording_id)
     finally:
         db.close()
 

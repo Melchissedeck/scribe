@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from app.models.recording import Recording
 from app.models.user import User
@@ -85,3 +85,19 @@ def test_run_capture_background_job_passes_db_and_recording_to_process(mock_sess
 
     assert received['db'] is db_session
     assert received['recording_id'] == recording.id
+
+
+@patch('app.services.audio_capture_service.run_post_meeting_processing')
+@patch('app.services.audio_capture_service.SessionLocal')
+def test_run_capture_background_job_swallows_db_errors(mock_session_local, mock_post_processing):
+    # Reproduit une base de donnees injoignable (ex. CI sans Postgres local) :
+    # la requete initiale doit echouer sans jamais faire remonter l'exception
+    # hors de la tache de fond.
+    broken_session = MagicMock()
+    broken_session.query.side_effect = Exception('connection refused')
+    mock_session_local.return_value = broken_session
+
+    run_capture_background_job(1, lambda db, rec: True)
+
+    mock_post_processing.assert_not_called()
+    broken_session.close.assert_called_once()
