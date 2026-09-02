@@ -1,18 +1,19 @@
 import traceback
 from datetime import timedelta
+from functools import partial
 from pathlib import Path
 
 from fastapi import APIRouter, BackgroundTasks, Depends, FastAPI, File, HTTPException, Request, UploadFile
 from pydub import AudioSegment
 from sqlalchemy.orm import Session
 
-from app.database import SessionLocal, get_db
+from app.database import get_db
 from app.dependencies import get_current_user, require_consent
 from app.models.recording import Recording
 from app.models.transcript_segment import TranscriptSegment
 from app.models.user import User
 from app.schemas.recording import DiarizeStatusResponse, SegmentOut
-from app.services.post_meeting_processing_service import run_post_meeting_processing
+from app.services.audio_capture_service import run_capture_background_job
 from app.services.speaker_assignment_service import SpeakerAssignmentService
 from app.services.whisper_service import WhisperService
 
@@ -224,77 +225,79 @@ def transcribe_audio(
     }
 
 
-def run_diarization(app: FastAPI, recording_id: int, audio_path: str) -> None:
+def _process_dictaphone_diarization(app: FastAPI, audio_path: str, db: Session, recording: Recording) -> bool:
+    """Transcrit avec horodatage puis diarise avec Pyannote.
+
+    Fonction de traitement de la source de capture dictaphone, passée
+    (via `functools.partial` pour lier `app` et `audio_path`) à
+    `run_capture_background_job` (abstraction commune avec le pipeline
+    visio) : celui-ci ouvre la session et charge l'enregistrement, cette
+    fonction se limite au travail propre au dictaphone. Traitement
+    purement CPU (pas de GPU sur l'hébergement) et potentiellement long
+    sur un enregistrement de plusieurs dizaines de minutes, largement
+    au-delà du délai qu'accepte une requête HTTP synchrone — d'où
+    l'exécution en tâche de fond.
+
+    Args:
+        app: Application FastAPI, pour accéder au cache du pipeline Pyannote.
+        audio_path: Chemin du fichier audio local à traiter.
+        db: Session de base de données ouverte par `run_capture_background_job`.
+        recording: Enregistrement déjà chargé par `run_capture_background_job`.
+
+    Returns:
+        True si la diarisation a réussi et les segments ont été persistés.
     """
-    Transcrit avec horodatage puis diarise avec Pyannote, en tâche de
-    fond : ce traitement est purement CPU (pas de GPU sur l'hébergement) et
-    peut prendre plusieurs minutes sur un enregistrement de plusieurs
-    dizaines de minutes, largement au-delà du délai qu'accepte une requête
-    HTTP synchrone (le proxy coupe la connexion avant la fin, sans que rien
-    ne soit jamais enregistré). Ouvre sa propre session DB (utilisé depuis
-    BackgroundTasks, où la session de la requête d'origine est déjà
-    fermée).
-    """
-    db = SessionLocal()
     try:
-        recording = db.query(Recording).filter(Recording.id == recording_id).first()
-        if not recording:
-            return
+        # 1. Transcription avec les timestamps de chaque segment
+        whisper_service = WhisperService()
+        transcription_segments = whisper_service.transcribe_segments(audio_path)
 
-        try:
-            # 1. Transcription avec les timestamps de chaque segment
-            whisper_service = WhisperService()
-            transcription_segments = whisper_service.transcribe_segments(audio_path)
+        # 2. Diarisation avec Pyannote
+        # Import différé : évite de charger torch/pyannote au démarrage
+        # de l'application, seulement lors de la première diarisation.
+        from app.services.pyannote_service import get_pyannote_service
 
-            # 2. Diarisation avec Pyannote
-            # Import différé : évite de charger torch/pyannote au démarrage
-            # de l'application, seulement lors de la première diarisation.
-            from app.services.pyannote_service import get_pyannote_service
+        pyannote_service = get_pyannote_service(app)
+        diarization_segments = pyannote_service.diarize(audio_path)
 
-            pyannote_service = get_pyannote_service(app)
-            diarization_segments = pyannote_service.diarize(audio_path)
+        # 3. Association des segments Whisper avec les speakers Pyannote
+        assignment_service = SpeakerAssignmentService()
+        assigned_segments = assignment_service.assign_speakers(
+            transcription_segments,
+            diarization_segments,
+        )
 
-            # 3. Association des segments Whisper avec les speakers Pyannote
-            assignment_service = SpeakerAssignmentService()
-            assigned_segments = assignment_service.assign_speakers(
-                transcription_segments,
-                diarization_segments,
-            )
+        # 4. Suppression des anciens segments du recording
+        db.query(TranscriptSegment).filter(
+            TranscriptSegment.recording_id == recording.id
+        ).delete(synchronize_session=False)
 
-            # 4. Suppression des anciens segments du recording
-            db.query(TranscriptSegment).filter(
-                TranscriptSegment.recording_id == recording.id
-            ).delete(synchronize_session=False)
+        # 5. Enregistrement des nouveaux segments en base
+        for segment in assigned_segments:
+            db.add(TranscriptSegment(
+                recording_id=recording.id,
+                start=segment["start"],
+                end=segment["end"],
+                text=segment["text"],
+                speaker=segment["speaker"],
+            ))
 
-            # 5. Enregistrement des nouveaux segments en base
-            for segment in assigned_segments:
-                db.add(TranscriptSegment(
-                    recording_id=recording.id,
-                    start=segment["start"],
-                    end=segment["end"],
-                    text=segment["text"],
-                    speaker=segment["speaker"],
-                ))
+        recording.diarization_status = "done"
+        db.commit()
+        return True
 
-            recording.diarization_status = "done"
+    except Exception:
+        db.rollback()
+
+        # Affiche le traceback complet dans le terminal Uvicorn
+        # pendant la phase de diagnostic.
+        traceback.print_exc()
+
+        failed = db.query(Recording).filter(Recording.id == recording.id).first()
+        if failed:
+            failed.diarization_status = "failed"
             db.commit()
-
-        except Exception:
-            db.rollback()
-
-            # Affiche le traceback complet dans le terminal Uvicorn
-            # pendant la phase de diagnostic.
-            traceback.print_exc()
-
-            recording = db.query(Recording).filter(Recording.id == recording_id).first()
-            if recording:
-                recording.diarization_status = "failed"
-                db.commit()
-            return
-    finally:
-        db.close()
-
-    run_post_meeting_processing(recording_id)
+        return False
 
 
 @router.post("/{recording_id}/diarize", status_code=202)
@@ -361,7 +364,11 @@ def diarize_audio(
     recording.diarization_status = "processing"
     db.commit()
 
-    background_tasks.add_task(run_diarization, request.app, recording.id, str(audio_path))
+    background_tasks.add_task(
+        run_capture_background_job,
+        recording.id,
+        partial(_process_dictaphone_diarization, request.app, str(audio_path)),
+    )
 
     return {
         "recording_id": recording.id,
