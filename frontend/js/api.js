@@ -139,6 +139,10 @@ export function getDashboardTrends(granularity = 'day', periods = 8) {
   return apiRequest(`/dashboard/trends?granularity=${granularity}&periods=${periods}`, { method: 'GET' });
 }
 
+export function getDashboardSpeakingTime() {
+  return apiRequest('/dashboard/speaking-time', { method: 'GET' });
+}
+
 export function getMeetingsCount() {
   return getMeetings().then((meetings) => meetings.length);
 }

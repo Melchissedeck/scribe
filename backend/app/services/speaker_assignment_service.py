@@ -12,7 +12,23 @@ class SpeakerAssignmentService:
         transcription_segments: list[dict],
         diarization_segments: list[dict],
     ) -> list[dict]:
+        """Associe chaque segment de transcription au locuteur Pyannote qui le chevauche le plus.
 
+        Pour chaque segment de transcription, cherche parmi les segments de
+        diarisation celui dont la plage temporelle chevauche le plus le
+        segment de transcription, et lui attribue son locuteur. Un segment
+        sans chevauchement avec aucun segment de diarisation se voit
+        attribuer `UNKNOWN_SPEAKER`.
+
+        Args:
+            transcription_segments: Segments issus de Whisper, chacun avec
+                au moins `start`, `end` et `text`.
+            diarization_segments: Segments issus de Pyannote, chacun avec
+                au moins `start`, `end` et `speaker`.
+
+        Returns:
+            Les segments de transcription enrichis d'un champ `speaker`.
+        """
         assigned_segments = []
 
         for transcription in transcription_segments:

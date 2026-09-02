@@ -41,15 +41,38 @@ _CHUNK_DURATION_MS = 8 * 60 * 1000
 _TARGET_FRAME_RATE = 16000
 _TARGET_SAMPLE_WIDTH = 2
 
+# Un appel de transcription sur une tranche de 8 minutes peut prendre du
+# temps sous charge ; sans timeout explicite, le client Groq attend le
+# defaut du SDK (tres long), ce qui laisse une requete bloquee indefiniment
+# en cas d'indisponibilite reseau silencieuse plutot que de declencher le
+# mecanisme de retry ci-dessous.
+_REQUEST_TIMEOUT_S = 120.0
+
 
 class WhisperService:
 
     def __init__(self):
         self.client = Groq(
-            api_key=settings.groq_api_key
+            api_key=settings.groq_api_key,
+            timeout=_REQUEST_TIMEOUT_S,
         )
 
     def transcribe(self, audio_path: str) -> str:
+        """Transcrit un fichier audio en texte brut via Whisper (Groq).
+
+        Découpe le fichier en tranches si nécessaire (voir `_split_audio`),
+        transcrit chaque tranche puis recolle les textes obtenus.
+
+        Args:
+            audio_path: Chemin du fichier audio à transcrire.
+
+        Returns:
+            La transcription complète du fichier audio.
+
+        Raises:
+            RuntimeError: Si la transcription d'une tranche échoue après
+                plusieurs tentatives (voir `_call_with_retry`).
+        """
         chunks = self._split_audio(audio_path)
         try:
             texts = [self._transcribe_chunk_text(chunk_path) for _, chunk_path in chunks]
@@ -58,6 +81,24 @@ class WhisperService:
             self._cleanup_chunks(chunks, audio_path)
 
     def transcribe_segments(self, audio_path: str) -> list[dict]:
+        """Transcrit un fichier audio en segments horodatés via Whisper (Groq).
+
+        Découpe le fichier en tranches si nécessaire (voir `_split_audio`),
+        transcrit chaque tranche puis recale les horodatages de chaque
+        segment obtenu sur le fichier d'origine (ajout de l'offset de la
+        tranche).
+
+        Args:
+            audio_path: Chemin du fichier audio à transcrire.
+
+        Returns:
+            La liste des segments transcrits, chacun avec `start`, `end` et
+            `text`, horodatés par rapport au fichier d'origine.
+
+        Raises:
+            RuntimeError: Si la transcription d'une tranche échoue après
+                plusieurs tentatives (voir `_call_with_retry`).
+        """
         chunks = self._split_audio(audio_path)
         try:
             all_segments: list[dict] = []

@@ -18,6 +18,14 @@ def list_actions(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    """Liste les actions de l'utilisateur courant, avec filtre optionnel par statut.
+
+    Args:
+        status: Filtre optionnel sur le statut ('todo', 'in_progress' ou 'done').
+
+    Returns:
+        Liste des actions correspondantes, triées par identifiant décroissant.
+    """
     query = (
         db.query(Action)
         .join(Recording, Action.recording_id == Recording.id)
@@ -42,6 +50,15 @@ def list_open_actions(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    """Liste les actions non terminées de l'utilisateur courant, triées par échéance.
+
+    Les actions au statut 'todo' ou 'in_progress' sont retournées, les plus
+    proches de leur échéance en premier ; celles sans échéance sont
+    placées en dernier.
+
+    Returns:
+        Liste des actions ouvertes.
+    """
     actions = (
         db.query(Action)
         .join(Recording, Action.recording_id == Recording.id)
@@ -69,6 +86,14 @@ def list_overdue_actions(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    """Liste les actions en retard de l'utilisateur courant.
+
+    Une action est considérée en retard si elle n'est pas terminée, possède
+    une échéance et que celle-ci est déjà dépassée.
+
+    Returns:
+        Liste des actions en retard, avec le thème de la réunion associée.
+    """
     actions = (
         db.query(Action)
         .join(Recording, Action.recording_id == Recording.id)
@@ -102,6 +127,18 @@ def update_action_status(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    """Met à jour le statut d'une action appartenant à l'utilisateur courant.
+
+    Args:
+        action_id: Identifiant de l'action à mettre à jour.
+        payload: Nouveau statut à appliquer.
+
+    Returns:
+        L'action mise à jour.
+
+    Raises:
+        HTTPException: 404 si l'action est introuvable ou n'appartient pas à l'utilisateur.
+    """
     action = (
         db.query(Action)
         .join(Recording, Action.recording_id == Recording.id)
@@ -131,6 +168,14 @@ def delete_action(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    """Supprime une action appartenant à l'utilisateur courant.
+
+    Args:
+        action_id: Identifiant de l'action à supprimer.
+
+    Raises:
+        HTTPException: 404 si l'action est introuvable ou n'appartient pas à l'utilisateur.
+    """
     action = (
         db.query(Action)
         .join(Recording, Action.recording_id == Recording.id)
@@ -153,6 +198,18 @@ def update_action_due_date(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    """Met à jour la date d'échéance d'une action appartenant à l'utilisateur courant.
+
+    Args:
+        action_id: Identifiant de l'action à mettre à jour.
+        payload: Nouvelle date d'échéance à appliquer.
+
+    Returns:
+        L'action mise à jour.
+
+    Raises:
+        HTTPException: 404 si l'action est introuvable ou n'appartient pas à l'utilisateur.
+    """
     action = (
         db.query(Action)
         .join(Recording, Action.recording_id == Recording.id)

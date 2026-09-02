@@ -2,6 +2,8 @@ from datetime import date
 
 from pydantic import BaseModel
 
+from app.schemas.recording import SpeakingTimeEntry
+
 
 class TrendPoint(BaseModel):
     period_start: date
@@ -12,3 +14,7 @@ class TrendPoint(BaseModel):
 class DashboardTrendsResponse(BaseModel):
     granularity: str
     points: list[TrendPoint]
+
+
+class DashboardSpeakingTimeResponse(BaseModel):
+    entries: list[SpeakingTimeEntry]

@@ -4,7 +4,7 @@ from datetime import datetime
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.database import SessionLocal, get_db
+from app.database import get_db
 from app.dependencies import get_current_user, require_consent
 from app.exceptions import VexaConnectionError
 from app.models.recording import Recording
@@ -12,7 +12,7 @@ from app.models.speaker import Speaker
 from app.models.transcript_segment import TranscriptSegment
 from app.models.user import User
 from app.schemas.recording import RecordingCreate, RecordingRead
-from app.services.post_meeting_processing_service import run_post_meeting_processing
+from app.services.audio_capture_service import run_capture_background_job
 from vexa_agent import VexaAgent
 
 logger = logging.getLogger(__name__)
@@ -137,40 +137,34 @@ def start_recording(
     return recording
 
 
-def _fetch_final_transcript(recording_id: int, platform: str, native_meeting_id: str) -> None:
-    """Récupère la transcription diarisée finale depuis Vexa en tâche de fond.
+def _process_vexa_transcript(db: Session, recording: Recording) -> bool:
+    """Récupère et persiste la transcription diarisée finale depuis Vexa.
 
-    Appelée via BackgroundTasks après l'arrêt du bot. Ouvre sa propre session
-    DB car la session de la requête d'origine est déjà fermée. Délègue ensuite
-    le résumé et l'extraction d'actions à run_post_meeting_processing, commune
-    au pipeline dictaphone.
+    Fonction de traitement de la source de capture visio, passée à
+    `run_capture_background_job` (abstraction commune avec le pipeline
+    dictaphone) : celui-ci ouvre la session et charge l'enregistrement,
+    cette fonction se limite au travail propre à Vexa.
 
     Args:
-        recording_id: Identifiant de la réunion en base.
-        platform: Plateforme de visioconférence (ex. 'google_meet').
-        native_meeting_id: Identifiant natif de la réunion sur la plateforme.
+        db: Session de base de données ouverte par `run_capture_background_job`.
+        recording: Enregistrement déjà chargé par `run_capture_background_job`.
+
+    Returns:
+        True si la transcription a été récupérée et persistée avec succès.
     """
-    db = SessionLocal()
-    got_transcript = False
     try:
         agent = VexaAgent()
-        raw_segments = agent.get_diarized_segments(platform, native_meeting_id)
-        transcript = agent.get_transcript(platform, native_meeting_id)
-        recording = db.query(Recording).filter(Recording.id == recording_id).first()
-        if recording:
-            recording.transcript = transcript
-            _save_diarized_segments(db, recording_id, raw_segments)
-            db.commit()
-            got_transcript = True
+        raw_segments = agent.get_diarized_segments(recording.platform, recording.native_meeting_id)
+        recording.transcript = agent.get_transcript(recording.platform, recording.native_meeting_id)
+        _save_diarized_segments(db, recording.id, raw_segments)
+        db.commit()
+        return True
     except VexaConnectionError:
-        logger.warning('Transcription Vexa indisponible pour la session %s', recording_id)
+        logger.warning('Transcription Vexa indisponible pour la session %s', recording.id)
+        return False
     except Exception as exc:
         logger.error('Erreur inattendue lors de la récupération finale de la transcription: %s', exc)
-    finally:
-        db.close()
-
-    if got_transcript:
-        run_post_meeting_processing(recording_id)
+        return False
 
 
 @router.post('/{recording_id}/stop', response_model=RecordingRead)
@@ -215,12 +209,7 @@ def stop_recording(
     db.commit()
     db.refresh(recording)
 
-    background_tasks.add_task(
-        _fetch_final_transcript,
-        recording.id,
-        recording.platform,
-        recording.native_meeting_id,
-    )
+    background_tasks.add_task(run_capture_background_job, recording.id, _process_vexa_transcript)
 
     return recording
 
