@@ -7,57 +7,12 @@ from sqlalchemy.orm import Session, selectinload
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.recording import Recording
-from app.models.transcript_segment import TranscriptSegment
 from app.models.user import User
-from app.schemas.dashboard import DashboardSpeakingTimeResponse, DashboardTrendsResponse, TrendPoint
-from app.schemas.recording import SpeakingTimeEntry
+from app.schemas.dashboard import DashboardTrendsResponse, TrendPoint
 
 router = APIRouter(prefix='/dashboard', tags=['dashboard'])
 
 DEFAULT_WEEKS = 8
-
-
-@router.get('/speaking-time', response_model=DashboardSpeakingTimeResponse)
-def get_dashboard_speaking_time(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    """Agrège le temps de parole par intervenant sur l'ensemble des réunions de l'utilisateur.
-
-    Args:
-        db: Session SQLAlchemy injectée.
-        current_user: Utilisateur authentifié.
-
-    Returns:
-        Les intervenants triés par temps de parole décroissant, en secondes et
-        en pourcentage du total. Liste vide si aucun segment diarisé n'existe.
-    """
-    segments = (
-        db.query(TranscriptSegment)
-        .join(Recording, TranscriptSegment.recording_id == Recording.id)
-        .filter(Recording.user_id == current_user.id)
-        .all()
-    )
-
-    durations: dict[str, float] = {}
-    for seg in segments:
-        duration = max(0.0, seg.end - seg.start)
-        durations[seg.speaker] = durations.get(seg.speaker, 0.0) + duration
-
-    total = sum(durations.values())
-    if total == 0:
-        return DashboardSpeakingTimeResponse(entries=[])
-
-    entries = [
-        SpeakingTimeEntry(
-            speaker=speaker,
-            seconds=round(seconds, 1),
-            percentage=round(seconds / total * 100, 1),
-        )
-        for speaker, seconds in sorted(durations.items(), key=lambda x: -x[1])
-    ]
-
-    return DashboardSpeakingTimeResponse(entries=entries)
 
 
 @router.get('/trends', response_model=DashboardTrendsResponse)
