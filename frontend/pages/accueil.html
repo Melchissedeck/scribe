@@ -136,6 +136,46 @@
           </div>
 
           <div class="section-divider">
+            <span class="section-title">Répartition</span>
+            <div class="section-line"></div>
+          </div>
+
+          <div class="charts-grid">
+            <div class="card chart-card chart-card--small viz-root">
+              <div class="chart-card-header">
+                <h3 class="chart-title">Thèmes dominants</h3>
+              </div>
+              <div class="chart-canvas-wrap chart-canvas-wrap--small">
+                <canvas id="chart-themes" role="img" aria-label="Répartition des réunions par thème"></canvas>
+              </div>
+              <p class="chart-empty" id="themes-empty" hidden>Aucun thème renseigné pour l'instant.</p>
+              <p class="chart-error" id="themes-error" hidden>Impossible de charger le graphique.</p>
+            </div>
+
+            <div class="card chart-card chart-card--small viz-root">
+              <div class="chart-card-header">
+                <h3 class="chart-title">Actions ouvertes / fermées</h3>
+              </div>
+              <div class="chart-canvas-wrap chart-canvas-wrap--small">
+                <canvas id="chart-actions-status" role="img" aria-label="Répartition des actions ouvertes et fermées"></canvas>
+              </div>
+              <p class="chart-empty" id="actions-status-empty" hidden>Aucune action pour l'instant.</p>
+              <p class="chart-error" id="actions-status-error" hidden>Impossible de charger le graphique.</p>
+            </div>
+
+            <div class="card chart-card chart-card--small viz-root">
+              <div class="chart-card-header">
+                <h3 class="chart-title">Temps de parole</h3>
+              </div>
+              <div class="chart-canvas-wrap chart-canvas-wrap--small">
+                <canvas id="chart-speaking-time" role="img" aria-label="Répartition du temps de parole par intervenant"></canvas>
+              </div>
+              <p class="chart-empty" id="speaking-time-empty" hidden>Pas encore de diarisation disponible.</p>
+              <p class="chart-error" id="speaking-time-error" hidden>Impossible de charger le graphique.</p>
+            </div>
+          </div>
+
+          <div class="section-divider">
             <span class="section-title">Synthèse globale</span>
             <div class="section-line"></div>
           </div>
