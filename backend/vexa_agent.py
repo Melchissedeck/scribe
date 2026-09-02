@@ -15,15 +15,18 @@ _RETRY_DELAYS = (1, 2, 4)  # backoff exponentiel en secondes
 
 
 def _http_call_with_retry(fn):
-    """Execute fn(), retrying on transient network errors with exponential backoff.
+    """Execute fn(), retrying on transient network errors or HTTP 429 with exponential backoff.
 
-    Retries only on ConnectionError/Timeout — not on HTTPError (4xx/5xx are permanent).
-    Raises the last ConnectionError/Timeout if all retries fail.
+    Retries on ConnectionError/Timeout and on a 429 (quota dépassé) response — other
+    HTTPError statuses (4xx/5xx) are permanent and left to the caller's raise_for_status().
+    Raises the last ConnectionError/Timeout, or returns the final 429 response, if all
+    retries fail.
     """
     last_exc: Exception | None = None
+    response = None
     for attempt in range(_MAX_RETRIES):
         try:
-            return fn()
+            response = fn()
         except (ConnectionError, Timeout) as exc:
             last_exc = exc
             if attempt < _MAX_RETRIES - 1:
@@ -33,6 +36,21 @@ def _http_call_with_retry(fn):
                     attempt + 1, _MAX_RETRIES, delay, exc,
                 )
                 time.sleep(delay)
+            continue
+
+        if response.status_code == 429 and attempt < _MAX_RETRIES - 1:
+            delay = _RETRY_DELAYS[attempt]
+            logger.warning(
+                'Vexa - quota dépassé (429), tentative %d/%d, nouvel essai dans %ds',
+                attempt + 1, _MAX_RETRIES, delay,
+            )
+            time.sleep(delay)
+            continue
+
+        return response
+
+    if response is not None:
+        return response
     raise last_exc  # type: ignore[misc]
 
 
