@@ -1,7 +1,9 @@
 import traceback
+from datetime import timedelta
 from pathlib import Path
 
 from fastapi import APIRouter, BackgroundTasks, Depends, FastAPI, File, HTTPException, Request, UploadFile
+from pydub import AudioSegment
 from sqlalchemy.orm import Session
 
 from app.database import SessionLocal, get_db
@@ -105,6 +107,14 @@ async def upload_audio(
             status_code=500,
             detail=f"Impossible de sauvegarder le fichier audio : {exc}",
         ) from exc
+
+    try:
+        segment = AudioSegment.from_file(str(audio_path))
+        duration_seconds = len(segment) / 1000
+        recording.stopped_at = recording.started_at + timedelta(seconds=duration_seconds)
+        db.commit()
+    except Exception:
+        pass
 
     return {
         "recording_id": recording.id,
