@@ -233,7 +233,7 @@ async function loadStats() {
     document.getElementById('stat-completion-rate').textContent = totalActions > 0 ? `${completionRate}%` : '—';
 
     document.getElementById('kpi-total-meetings').textContent = totalMeetings;
-    document.getElementById('kpi-hours-analyzed').textContent = totalMinutes > 0 ? hoursAnalyzed : '—';
+    document.getElementById('kpi-hours-analyzed').textContent = meetings.some((m) => m.duration_minutes != null) ? hoursAnalyzed : '—';
     document.getElementById('kpi-total-actions').textContent = totalActions;
 
     const summariesCoverage = totalMeetings > 0 ? Math.round((summariesCount / totalMeetings) * 100) : 0;
