@@ -46,6 +46,37 @@ def _build_excerpt(summary: str | None) -> str | None:
     return summary[:EXCERPT_LENGTH].rstrip() + '...'
 
 
+def _get_owned_recording(
+    db: Session,
+    meeting_id: int,
+    current_user: User,
+    *options,
+) -> Recording:
+    """Récupère une réunion appartenant à l'utilisateur courant, ou lève 404.
+
+    Args:
+        db: Session SQLAlchemy active.
+        meeting_id: Identifiant de la réunion.
+        current_user: Utilisateur authentifié, propriétaire attendu.
+        *options: Options de chargement SQLAlchemy (selectinload, etc.) à appliquer.
+
+    Returns:
+        L'instance Recording correspondante.
+
+    Raises:
+        HTTPException: 404 si la réunion n'existe pas ou n'appartient pas à l'utilisateur.
+    """
+    query = db.query(Recording).filter(
+        Recording.id == meeting_id, Recording.user_id == current_user.id
+    )
+    if options:
+        query = query.options(*options)
+    recording = query.first()
+    if not recording:
+        raise HTTPException(status_code=404, detail='Réunion introuvable.')
+    return recording
+
+
 @router.get('', response_model=list[MeetingListItem])
 def list_meetings(
     theme: str | None = Query(default=None, description="Filtre sur le thème (recherche partielle, insensible à la casse)"),
@@ -93,11 +124,7 @@ def update_meeting_theme(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    recording = db.query(Recording).filter(
-        Recording.id == meeting_id, Recording.user_id == current_user.id
-    ).first()
-    if not recording:
-        raise HTTPException(status_code=404, detail='Réunion introuvable.')
+    recording = _get_owned_recording(db, meeting_id, current_user)
 
     recording.theme = payload.theme.strip() if payload.theme and payload.theme.strip() else None
     db.commit()
@@ -112,11 +139,7 @@ def get_speaking_time(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    recording = db.query(Recording).filter(
-        Recording.id == meeting_id, Recording.user_id == current_user.id
-    ).first()
-    if not recording:
-        raise HTTPException(status_code=404, detail='Réunion introuvable.')
+    _get_owned_recording(db, meeting_id, current_user)
 
     segments = db.query(TranscriptSegment).filter(
         TranscriptSegment.recording_id == meeting_id
@@ -150,13 +173,7 @@ def get_diarized_transcript(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    recording = (
-        db.query(Recording)
-        .filter(Recording.id == meeting_id, Recording.user_id == current_user.id)
-        .first()
-    )
-    if not recording:
-        raise HTTPException(status_code=404, detail='Réunion introuvable.')
+    _get_owned_recording(db, meeting_id, current_user)
 
     segments = (
         db.query(TranscriptSegment)
@@ -186,13 +203,7 @@ def classify_segments(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    recording = (
-        db.query(Recording)
-        .filter(Recording.id == meeting_id, Recording.user_id == current_user.id)
-        .first()
-    )
-    if not recording:
-        raise HTTPException(status_code=404, detail='Réunion introuvable.')
+    recording = _get_owned_recording(db, meeting_id, current_user)
 
     segments = (
         db.query(TranscriptSegment)
@@ -248,13 +259,7 @@ def get_segments_classification(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    recording = (
-        db.query(Recording)
-        .filter(Recording.id == meeting_id, Recording.user_id == current_user.id)
-        .first()
-    )
-    if not recording:
-        raise HTTPException(status_code=404, detail='Réunion introuvable.')
+    recording = _get_owned_recording(db, meeting_id, current_user)
 
     segments = (
         db.query(TranscriptSegment)
@@ -296,13 +301,7 @@ def anonymize_meeting(
     Action irréversible (US-69, droit à l'effacement RGPD) : le nom
     d'origine n'est conservé nulle part une fois l'opération effectuée.
     """
-    recording = (
-        db.query(Recording)
-        .filter(Recording.id == meeting_id, Recording.user_id == current_user.id)
-        .first()
-    )
-    if not recording:
-        raise HTTPException(status_code=404, detail='Réunion introuvable.')
+    recording = _get_owned_recording(db, meeting_id, current_user)
 
     anonymize_recording(db, recording.id)
 
@@ -328,18 +327,12 @@ def get_meeting_details(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    recording = (
-        db.query(Recording)
-        .filter(Recording.id == meeting_id, Recording.user_id == current_user.id)
-        .options(
-            selectinload(Recording.speakers),
-            selectinload(Recording.segments),
-            selectinload(Recording.actions),
-        )
-        .first()
+    recording = _get_owned_recording(
+        db, meeting_id, current_user,
+        selectinload(Recording.speakers),
+        selectinload(Recording.segments),
+        selectinload(Recording.actions),
     )
-    if not recording:
-        raise HTTPException(status_code=404, detail='Réunion introuvable.')
 
     segments = sorted(recording.segments, key=lambda seg: seg.start)
 
@@ -365,14 +358,10 @@ def export_docx(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> StreamingResponse:
-    recording = (
-        db.query(Recording)
-        .filter(Recording.id == meeting_id, Recording.user_id == current_user.id)
-        .options(selectinload(Recording.actions).selectinload(Action.speaker))
-        .first()
+    recording = _get_owned_recording(
+        db, meeting_id, current_user,
+        selectinload(Recording.actions).selectinload(Action.speaker),
     )
-    if not recording:
-        raise HTTPException(status_code=404, detail='Réunion introuvable.')
 
     try:
         import re as _re
@@ -466,11 +455,7 @@ def delete_meeting(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> Response:
-    recording = db.query(Recording).filter(
-        Recording.id == meeting_id, Recording.user_id == current_user.id
-    ).first()
-    if not recording:
-        raise HTTPException(status_code=404, detail='Réunion introuvable.')
+    recording = _get_owned_recording(db, meeting_id, current_user)
 
     db.query(Action).filter(Action.recording_id == meeting_id).delete()
     db.query(TranscriptSegment).filter(TranscriptSegment.recording_id == meeting_id).delete()
@@ -486,16 +471,10 @@ def export_meeting_pdf(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    recording = (
-        db.query(Recording)
-        .filter(Recording.id == meeting_id, Recording.user_id == current_user.id)
-        .options(
-            selectinload(Recording.actions).selectinload(Action.speaker),
-        )
-        .first()
+    recording = _get_owned_recording(
+        db, meeting_id, current_user,
+        selectinload(Recording.actions).selectinload(Action.speaker),
     )
-    if not recording:
-        raise HTTPException(status_code=404, detail='Réunion introuvable.')
 
     pdf_bytes = PDFExportService().generate_pdf(recording)
 
