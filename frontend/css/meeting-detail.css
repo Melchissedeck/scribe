@@ -239,10 +239,31 @@
 /* ── Résumé ──────────────────────────────────────────────────────────────── */
 .cr-summary-text {
   font-size: 13.5px;
-  line-height: 1.7;
+  line-height: 1.6;
   color: var(--color-text);
   margin: 0;
-  white-space: pre-wrap;
+}
+
+.cr-summary-text p {
+  margin: 0 0 0.45em;
+}
+.cr-summary-text p:last-child {
+  margin-bottom: 0;
+}
+.cr-summary-text ul,
+.cr-summary-text ol {
+  margin: 0.25em 0 0.45em;
+  padding-left: 1.4em;
+}
+.cr-summary-text li {
+  margin-bottom: 0.15em;
+}
+.cr-summary-text li:last-child {
+  margin-bottom: 0;
+}
+.cr-summary-text strong {
+  margin-top: 0.5em;
+  display: inline-block;
 }
 
 /* ── Sentiment ───────────────────────────────────────────────────────────── */
