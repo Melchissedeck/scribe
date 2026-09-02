@@ -446,26 +446,9 @@ button { font-family: inherit; cursor: pointer; }
   --viz-grid:      #e1e0d9;
   --viz-series-1:  #2a78d6; /* categorical slot 1 - blue - "Réunions" */
   --viz-series-2:  #eb6834; /* categorical slot 2 - orange - "Actions" */
-  --viz-series-3:  #22a06b; /* categorical slot 3 - green */
-  --viz-series-4:  #8b5cf6; /* categorical slot 4 - purple */
-  --viz-series-5:  #d6a72a; /* categorical slot 5 - amber */
-  --viz-series-6:  #2ab6b0; /* categorical slot 6 - teal */
 }
 
 .trend-card { padding: 22px; margin-bottom: 28px; }
-
-.charts-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 28px; }
-
-.chart-card--small { padding: 18px; }
-.chart-canvas-wrap--small { height: 200px; }
-
-@media (max-width: 900px) {
-  .charts-grid { grid-template-columns: 1fr 1fr; }
-}
-
-@media (max-width: 560px) {
-  .charts-grid { grid-template-columns: 1fr; }
-}
 
 .chart-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
 .chart-title { font-size: 14px; font-weight: 800; letter-spacing: -0.01em; }
