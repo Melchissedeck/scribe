@@ -17,6 +17,20 @@ def extract_actions(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    """Extrait les actions, le thème et les décisions d'une réunion via le LLM.
+
+    Args:
+        meeting_id: Identifiant de la réunion à traiter.
+        db: Session de base de données injectée par FastAPI.
+        current_user: Utilisateur authentifié, résolu depuis le token JWT.
+
+    Returns:
+        Le nombre d'actions créées, le thème détecté et la liste des actions.
+
+    Raises:
+        HTTPException: 404 si la réunion est introuvable ou n'appartient pas à l'utilisateur.
+        HTTPException: 400 si aucune transcription n'est disponible.
+    """
     recording = (
         db.query(Recording)
         .filter(
