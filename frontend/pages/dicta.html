@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script>try{var t=localStorage.getItem('scribe-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+
+  <title>Scribe - Dictaphone</title>
+
+  <link rel="stylesheet" href="../css/tokens.css">
+  <link rel="stylesheet" href="../css/base.css">
+  <link rel="stylesheet" href="../css/flow.css">
+  <link rel="stylesheet" href="../css/dicta.css">
+  <link rel="stylesheet" href="../css/dark.css">
+</head>
+
+<body>
+
+  <main class="flow-page">
+
+    <section class="card flow-card dicta-card">
+
+      <!-- Écran d'enregistrement -->
+
+      <div id="recording-view">
+
+        <h1 class="flow-title">
+          Réunion en présentiel
+        </h1>
+
+        <p class="flow-text">
+          Utilisez le microphone de votre appareil pour enregistrer votre réunion.
+        </p>
+
+        <div class="dicta-status">
+
+          <span
+            id="recording-indicator"
+            class="recording-indicator"
+          ></span>
+
+          <span id="recording-status">
+            Prêt à enregistrer
+          </span>
+
+        </div>
+
+        <div
+          class="connection-badge"
+          id="connection-badge"
+        >
+
+          <span
+            id="connection-dot"
+            class="connection-dot"
+          ></span>
+
+          <span id="connection-text">
+            Connecté
+          </span>
+
+        </div>
+
+        <div
+          class="dicta-timer"
+          id="recording-timer"
+        >
+          00:00
+        </div>
+
+        <div class="flow-actions dicta-actions">
+
+          <button
+            type="button"
+            id="start-recording-button"
+            class="button-primary"
+          >
+            Commencer l'enregistrement
+          </button>
+
+          <button
+            type="button"
+            id="stop-recording-button"
+            class="button-secondary"
+            disabled
+          >
+            Arrêter
+          </button>
+
+        </div>
+
+        <p
+          id="recording-error"
+          class="error-message"
+          role="alert"
+        ></p>
+
+      </div>
+
+
+      <!-- Écran de transcription -->
+
+      <div
+        id="transcription-view"
+        class="visio-hidden"
+      >
+
+        <h1 class="flow-title">
+          Transcription
+        </h1>
+
+        <p
+          class="flow-text"
+          id="transcription-status"
+        >
+          Transcription en cours...
+        </p>
+
+        <div
+          id="transcription-loading"
+          class="dicta-loading"
+        >
+
+          <span class="loading-dot"></span>
+
+          <span>
+            Transcription en cours...
+          </span>
+
+        </div>
+
+        <div
+          id="transcription-result"
+          class="transcription-result visio-hidden"
+        >
+
+          <div id="transcription-content"></div>
+
+          <div
+            id="speaking-time"
+            class="speaking-time visio-hidden"
+          ></div>
+
+          <div
+            id="transcription-segments"
+            class="transcription-segments visio-hidden"
+          ></div>
+
+        </div>
+
+        <p
+          id="transcription-error"
+          class="error-message"
+          role="alert"
+        ></p>
+
+        <div class="flow-actions">
+
+          <button
+            type="button"
+            id="view-report-button"
+            class="button-primary"
+            disabled
+          >
+            Voir le compte-rendu
+          </button>
+
+          <a
+            href="accueil.html"
+            class="button-secondary flow-flex"
+            style="text-align: center;"
+          >
+            Tableau de bord
+          </a>
+
+        </div>
+
+      </div>
+
+    </section>
+
+  </main>
+
+  <script type="module" src="../js/theme.js"></script>
+  <script
+    type="module"
+    src="../js/dicta.js"
+  ></script>
+
+</body>
+</html>

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script>try{var t=localStorage.getItem('scribe-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+  <title>Scribe - Mes réunions</title>
+  <link rel="stylesheet" href="../css/tokens.css">
+  <link rel="stylesheet" href="../css/base.css">
+  <link rel="stylesheet" href="../css/dashboard.css">
+  <link rel="stylesheet" href="../css/dark.css">
+</head>
+<body>
+  <div class="dashboard-page">
+    <div class="dashboard-header">
+      <h1 class="dashboard-title">Mes réunions</h1>
+      <span class="dashboard-count" id="meeting-count"></span>
+    </div>
+
+    <a href="consent.html" class="button-primary dashboard-new-meeting-link">+ Nouvelle réunion</a>
+
+    <div id="meeting-list" class="meeting-list"></div>
+
+    <div id="empty-state" class="empty-state" hidden>
+      <p class="empty-state-title">Aucune réunion pour le moment</p>
+      <p>Vos réunions passées apparaîtront ici une fois enregistrées.</p>
+    </div>
+  </div>
+
+  <script type="module" src="../js/theme.js"></script>
+  <script type="module" src="../js/dashboard.js"></script>
+</body>
+</html>

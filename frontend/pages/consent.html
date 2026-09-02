@@ -1,0 +1,43 @@
+﻿<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script>try{var t=localStorage.getItem('scribe-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+  <title>Scribe - Consentement</title>
+  <link rel="stylesheet" href="../css/tokens.css">
+  <link rel="stylesheet" href="../css/base.css">
+  <link rel="stylesheet" href="../css/flow.css">
+  <link rel="stylesheet" href="../css/dark.css">
+</head>
+<body>
+  <div class="flow-page">
+    <div class="flow-card card">
+      <a href="accueil.html" class="flow-back">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+        Retour
+      </a>
+      <h1 class="flow-title">Avant de commencer</h1>
+      <p class="flow-text">
+        Cette réunion va être captée, transcrite, résumée et stockée dans Scribe.
+        Merci d'en informer les autres participants avant de démarrer.
+      </p>
+
+      <ul class="flow-list">
+        <li>L'audio est enregistré pendant toute la durée de la réunion.</li>
+        <li>La transcription et le compte-rendu sont générés automatiquement.</li>
+        <li>Les données sont traitées par nos sous-traitants Vexa et Anthropic.</li>
+        <li>Vous pouvez supprimer une réunion depuis votre tableau de bord.</li>
+      </ul>
+
+      <div class="flow-actions">
+        <button class="button-secondary" id="refuse-button">Refuser</button>
+        <button class="button-primary flow-flex" id="accept-button">J'accepte, continuer</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="../js/theme.js"></script>
+  <script type="module" src="../js/consent-screen.js"></script>
+</body>
+</html>

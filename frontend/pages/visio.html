@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script>try{var t=localStorage.getItem('scribe-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+  <title>Scribe - Réunion à distance</title>
+  <link rel="stylesheet" href="../css/tokens.css">
+  <link rel="stylesheet" href="../css/base.css">
+  <link rel="stylesheet" href="../css/flow.css">
+  <link rel="stylesheet" href="../css/visio.css">
+  <link rel="stylesheet" href="../css/dark.css">
+</head>
+<body>
+  <div class="flow-page">
+    <div class="flow-card card">
+
+      <!-- Formulaire de lancement -->
+      <div id="setup-panel">
+        <button class="visio-back" onclick="history.back()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+          Retour
+        </button>
+
+        <div class="visio-title-row">
+          <div class="visio-icon-wrap">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="15" height="10" rx="2"/><path d="M17 9l4-2v10l-4-2"/></svg>
+          </div>
+          <div>
+            <h1 class="visio-main-title">Déployer l'agent en visio</h1>
+            <p class="visio-main-sub">Connectez Scribe à votre réunion en ligne.</p>
+          </div>
+        </div>
+
+        <div class="mono-label" style="margin: 26px 0 12px;">CHOISIR LA PLATEFORME</div>
+        <div class="platform-grid">
+          <div class="platform-card" data-platform="google_meet">
+            <div class="platform-letter" style="background: #2563EB;">G</div>
+            <span class="platform-name">Google Meet</span>
+          </div>
+          <div class="platform-card" data-platform="zoom">
+            <div class="platform-letter" style="background: #2D8CFF;">Z</div>
+            <span class="platform-name">Zoom</span>
+          </div>
+          <div class="platform-card" data-platform="teams">
+            <div class="platform-letter" style="background: #5B5EA6;">T</div>
+            <span class="platform-name">Teams</span>
+          </div>
+        </div>
+
+        <div class="mono-label" style="margin: 24px 0 12px;">LIEN DE LA RÉUNION</div>
+        <div class="link-input-wrap">
+          <svg class="link-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+          </svg>
+          <input
+            class="link-input"
+            type="url"
+            id="meeting-url"
+            placeholder="https://meet.google.com/abc-defg-hij"
+            autocomplete="off"
+          >
+        </div>
+
+        <p class="error-message" id="error-message"></p>
+
+        <button class="button-primary" id="start-button" disabled style="width: 100%; margin-top: 20px;">
+          Déployer l'agent
+        </button>
+        <p class="visio-deploy-hint" id="deploy-hint">
+          Sélectionnez une plateforme et collez le lien de la réunion pour continuer.
+        </p>
+
+        <div id="fallback-section" class="fallback-section visio-hidden">
+          <div class="fallback-divider"><span>ou</span></div>
+          <div class="mono-label" style="margin-bottom: 10px;">IMPORTER UN ENREGISTREMENT AUDIO</div>
+          <p class="fallback-hint">Le service de visio est indisponible. Importez un fichier audio à la place.</p>
+          <label class="file-label" for="audio-file-input">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <span id="file-label-text">Choisir un fichier audio</span>
+            <input type="file" id="audio-file-input" accept=".mp3,.wav,.m4a,.webm,.ogg" style="display:none">
+          </label>
+          <button class="button-primary" id="upload-button" disabled style="width: 100%; margin-top: 10px;">
+            Transcrire le fichier
+          </button>
+          <p class="error-message" id="upload-error"></p>
+        </div>
+      </div>
+
+      <!-- Session en cours -->
+      <div id="session-panel" class="visio-hidden">
+        <div class="session-status" id="status-indicator">
+          <span class="status-dot" id="status-dot"></span>
+          <span id="status-label">Session en cours</span>
+        </div>
+
+        <div class="session-meta">
+          <span class="meta-badge" id="platform-badge"></span>
+          <span class="meta-id" id="meeting-id-display"></span>
+        </div>
+
+        <div class="transcript-box">
+          <div class="transcript-header">
+            <span>Transcription en direct</span>
+            <span class="transcript-timer" id="elapsed-time">00:00</span>
+          </div>
+          <div class="transcript-content" id="transcript-content">
+            <p class="transcript-empty">En attente des premiers échanges…</p>
+          </div>
+        </div>
+
+        <p class="error-message" id="session-error"></p>
+
+        <div class="flow-actions">
+          <button class="button-stop flow-flex" id="stop-button">
+            Arrêter la session
+          </button>
+        </div>
+      </div>
+
+      <!-- Session terminée -->
+      <div id="done-panel" class="visio-hidden">
+        <div class="session-status">
+          <span class="status-dot status-dot--stopped"></span>
+          <span>Session terminée</span>
+        </div>
+
+        <div class="transcript-box">
+          <div class="transcript-header">
+            <span>Transcription complète</span>
+          </div>
+          <div class="transcript-content" id="final-transcript"></div>
+        </div>
+
+        <div id="speaking-time-section" class="speaking-time-section visio-hidden">
+          <div class="mono-label" style="margin-bottom: 12px;">TEMPS DE PAROLE</div>
+          <div id="speaking-time-list"></div>
+        </div>
+
+        <div class="flow-actions">
+          <a id="detail-link" href="#" class="button-secondary" style="text-align:center;">Voir le compte rendu</a>
+          <a href="accueil.html" class="button-primary flow-flex" style="text-align:center;">Tableau de bord</a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script type="module" src="../js/theme.js"></script>
+  <script type="module" src="../js/visio.js"></script>
+</body>
+</html>

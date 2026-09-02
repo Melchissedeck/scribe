@@ -1,0 +1,40 @@
+﻿<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script>try{var t=localStorage.getItem('scribe-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+  <title>Scribe - Nouvelle session</title>
+  <link rel="stylesheet" href="../css/tokens.css">
+  <link rel="stylesheet" href="../css/base.css">
+  <link rel="stylesheet" href="../css/flow.css">
+  <link rel="stylesheet" href="../css/dark.css">
+</head>
+<body>
+  <div class="flow-page">
+    <div class="flow-card card">
+      <a href="consent.html" class="flow-back">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+        Retour
+      </a>
+      <h1 class="flow-title">Nouvelle session</h1>
+      <p class="flow-text">Choisissez comment vous souhaitez capter cette réunion.</p>
+
+      <div class="mode-choice">
+        <button class="mode-option" id="visio-option">
+          <p class="mode-option-title">Réunion à distance</p>
+          <p class="mode-option-description">Scribe rejoint votre visioconférence et capte les échanges.</p>
+        </button>
+
+        <button class="mode-option" id="dicta-option">
+          <p class="mode-option-title">Réunion en présentiel</p>
+          <p class="mode-option-description">Scribe utilise le micro de votre appareil comme dictaphone.</p>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="../js/theme.js"></script>
+  <script type="module" src="../js/mode-selection.js"></script>
+</body>
+</html>

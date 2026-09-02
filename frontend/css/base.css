@@ -1,0 +1,102 @@
+﻿/* Styles de base communs a toutes les pages */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-primary);
+  background-color: var(--color-background);
+  color: var(--color-text);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+input, button {
+  font-family: inherit;
+  font-size: inherit;
+}
+
+a {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.card {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+
+.button-primary {
+  background-color: var(--color-primary);
+  color: var(--color-surface);
+  border: none;
+  border-radius: var(--radius-input);
+  padding: 11px 17px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: var(--shadow-button);
+  transition: box-shadow .15s;
+}
+
+.button-primary:hover {
+  box-shadow: var(--shadow-button-hover);
+}
+
+.button-primary:disabled {
+  opacity: .6;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.input-field {
+  width: 100%;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-input);
+  padding: 9px 12px;
+  color: var(--color-text);
+}
+
+.input-field:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.password-field {
+  position: relative;
+}
+
+.password-field .input-field {
+  padding-right: 40px;
+}
+
+.password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  padding: 0;
+}
+
+.password-toggle:hover {
+  color: var(--color-text-secondary);
+}
+
+.error-message {
+  color: var(--color-error);
+  font-size: 12.5px;
+  font-weight: 600;
+}

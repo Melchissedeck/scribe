@@ -1,0 +1,55 @@
+﻿/* Styles partages par les ecrans de connexion et d'inscription */
+
+.auth-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 380px;
+  padding: 18px 20px;
+}
+
+.auth-title {
+  font-size: 18px;
+  font-weight: 800;
+  margin-bottom: 6px;
+}
+
+.auth-subtitle {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  margin-bottom: 20px;
+}
+
+.form-group {
+  margin-bottom: 14px;
+}
+
+.form-label {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 700;
+  margin-bottom: 6px;
+  color: var(--color-text-secondary);
+}
+
+.auth-submit {
+  width: 100%;
+  margin-top: 6px;
+}
+
+.auth-footer {
+  margin-top: 18px;
+  font-size: 12.5px;
+  color: var(--color-text-secondary);
+  text-align: center;
+}
+
+.auth-footer a {
+  font-weight: 700;
+}

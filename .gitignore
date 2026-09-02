@@ -1,0 +1,34 @@
+﻿# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+.coverage
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Environment
+.env
+
+# Docker
+*.log
+
+# IDE
+.vscode/
+.idea/
+.DS_Store
+
+# Base de données locale
+*.db
+*.sqlite3
+
+# Certificats HTTPS locaux
+frontend/certs/
+frontend/cert.pem
+frontend/key.pem
+
+# Fichiers audio uploadés localement (mode dictaphone)
+backend/uploads/

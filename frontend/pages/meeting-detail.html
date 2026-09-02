@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script>try{var t=localStorage.getItem('scribe-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+  <title>Scribe - Compte-rendu</title>
+  <link rel="stylesheet" href="../css/tokens.css">
+  <link rel="stylesheet" href="../css/base.css">
+  <link rel="stylesheet" href="../css/meeting-detail.css">
+  <link rel="stylesheet" href="../css/dark.css">
+</head>
+<body>
+  <div class="cr-page">
+
+    <!-- Stepper -->
+    <div class="cr-stepper">
+      <div class="cr-step cr-step--done">
+        <div class="cr-step-dot">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <span class="cr-step-label">Consentement</span>
+      </div>
+      <div class="cr-step-line"></div>
+      <div class="cr-step cr-step--done">
+        <div class="cr-step-dot">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <span class="cr-step-label">Capture</span>
+      </div>
+      <div class="cr-step-line"></div>
+      <div class="cr-step cr-step--done">
+        <div class="cr-step-dot">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <span class="cr-step-label">Traitement</span>
+      </div>
+      <div class="cr-step-line"></div>
+      <div class="cr-step cr-step--active">
+        <div class="cr-step-dot">4</div>
+        <span class="cr-step-label">Compte-rendu</span>
+      </div>
+    </div>
+
+    <!-- Header -->
+    <div class="card cr-header-card">
+      <div class="cr-header-top">
+        <a href="accueil.html" class="cr-back">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+          Retour aux réunions
+        </a>
+        <span class="cr-badge-done">Synthèse complète</span>
+      </div>
+      <h1 class="cr-title" id="cr-title" contenteditable="true" spellcheck="false" title="Cliquez pour renommer">Chargement…</h1>
+      <p class="cr-meta" id="cr-meta">Chargement…</p>
+      <div class="cr-action-bar">
+        <button class="button-primary cr-btn-action" id="btn-pdf">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Télécharger le PDF
+        </button>
+        <button class="button-secondary cr-btn-action" id="btn-word">Export Word</button>
+        <button class="button-secondary cr-btn-action" id="btn-copy">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          Copier
+        </button>
+        <button class="button-secondary cr-btn-action" id="btn-anonymize" title="Remplace les noms des intervenants par des libellés génériques (action irréversible)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          Anonymiser
+        </button>
+      </div>
+    </div>
+
+    <!-- Résumé -->
+    <div class="card cr-card">
+      <div class="cr-card-header">
+        <h2 class="cr-section-title">Résumé</h2>
+        <span class="cr-badge-ai">Généré par l'IA</span>
+      </div>
+      <p id="cr-summary" class="cr-summary-text">Chargement…</p>
+    </div>
+
+    <!-- Plan d'action -->
+    <div class="card cr-card" id="cr-actions-card" style="display:none;">
+      <div class="cr-card-header">
+        <h2 class="cr-section-title">Plan d'action</h2>
+      </div>
+      <table class="cr-table">
+        <thead>
+          <tr>
+            <th>Action à mener</th>
+            <th>Statut</th>
+          </tr>
+        </thead>
+        <tbody id="cr-actions-body"></tbody>
+      </table>
+    </div>
+
+    <!-- Échanges capturés -->
+    <div class="card cr-card">
+      <div class="cr-card-header">
+        <h2 class="cr-section-title">Les Échanges Capturés</h2>
+        <span class="cr-badge-diarization" id="cr-speakers-badge">Diarisation</span>
+      </div>
+      <div id="cr-speaking-time" class="cr-speaking-time"></div>
+      <div id="cr-segments" class="cr-segments"></div>
+    </div>
+
+  </div>
+
+  <!-- Bouton flottant -->
+  <button class="cr-fab" id="btn-fab">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    Télécharger le compte-rendu
+  </button>
+
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script type="module" src="../js/theme.js"></script>
+  <script type="module" src="../js/meeting-detail.js"></script>
+</body>
+</html>
