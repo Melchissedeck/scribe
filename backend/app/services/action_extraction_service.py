@@ -23,6 +23,10 @@ def run_action_extraction(db: Session, recording: Recording) -> list[Action]:
     if not recording.transcript or not str(recording.transcript).strip():
         return []
 
+    existing = db.query(Action).filter(Action.recording_id == recording.id).all()
+    if existing:
+        return existing
+
     llm_service = LLMService()
     structured = llm_service.generate_structured_summary(recording.transcript)
     if structured is None:
