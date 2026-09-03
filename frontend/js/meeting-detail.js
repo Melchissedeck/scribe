@@ -11,6 +11,14 @@ if (!sessionStorage.getItem('access_token')) {
   window.location.href = 'login.html';
 }
 
+// Le backend renvoie des horodatages naifs (sans "Z" ni decalage), qui sont
+// en realite en UTC. Sans ce marqueur, `new Date()` les interprete comme
+// une heure locale deja, d'ou un decalage de plusieurs heures a l'affichage.
+function toUtcDate(isoString) {
+  const utc = isoString.endsWith('Z') || isoString.includes('+') ? isoString : isoString + 'Z';
+  return new Date(utc);
+}
+
 const SPEAKER_COLORS = [
   { bg: '#EAF1FF', text: '#2563EB', bar: '#3B82F6' },
   { bg: '#FEF3C7', text: '#92400E', bar: '#F59E0B' },
@@ -137,13 +145,13 @@ async function ensureActionsAndTheme(details) {
 function renderMeta(details) {
   currentTheme = details.theme || null;
   titleEl.textContent = currentTheme || 'Réunion sans titre';
-  const date = new Date(details.started_at).toLocaleString('fr-FR', {
+  const date = toUtcDate(details.started_at).toLocaleString('fr-FR', {
     day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit',
   });
 
   let duration = '';
   if (details.stopped_at) {
-    const secs = Math.round((new Date(details.stopped_at) - new Date(details.started_at)) / 1000);
+    const secs = Math.round((toUtcDate(details.stopped_at) - toUtcDate(details.started_at)) / 1000);
     const h = Math.floor(secs / 3600);
     const m = Math.floor((secs % 3600) / 60);
     duration = h > 0 ? ` · ${h}h${String(m).padStart(2, '0')}` : ` · ${m} min`;
@@ -411,7 +419,7 @@ function getInitials(name) {
 }
 
 function formatRelativeTime(unixSeconds, startedAt) {
-  const startUnix = new Date(startedAt).getTime() / 1000;
+  const startUnix = toUtcDate(startedAt).getTime() / 1000;
   const relative = Math.max(0, unixSeconds - startUnix);
   const m = Math.floor(relative / 60);
   const s = Math.floor(relative % 60);
