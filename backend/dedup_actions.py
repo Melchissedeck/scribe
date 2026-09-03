@@ -8,9 +8,10 @@ Usage :
     python dedup_actions.py
 """
 
+from sqlalchemy import func
+
 from app.database import SessionLocal
 from app.models.action import Action
-from sqlalchemy import func
 
 db = SessionLocal()
 
