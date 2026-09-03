@@ -202,11 +202,3 @@ scribe/
 ├── docker-compose.yml
 └── README.md
 ```
-
-## Documentation complémentaire
-
-Le dossier [`docs/`](docs/) contient la documentation technique détaillée :
-modèle de données, stratégie de tests, schéma du compte-rendu structuré,
-journal d'audit, tests de charge, ainsi que les livrables académiques du
-projet (dossier de cadrage, spécifications et architecture, rapport
-technique).
